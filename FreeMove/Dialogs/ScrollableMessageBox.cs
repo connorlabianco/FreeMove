@@ -90,8 +90,8 @@ namespace FreeMove.Dialogs
                 };
 
                 Button[] made = MakeButtons(buttons);
-                foreach (Button b in made.Reverse()) bottom.Controls.Add(b);
-
+                for (int i = made.Length - 1; i >= 0; i--) bottom.Controls.Add(made[i]);
+                
                 // Copy everything, handy for reporting issues
                 var copy = new Button { Text = T("LongMsg_Copy", "Copy"), AutoSize = true };
                 copy.Click += (s, e) => { try { Clipboard.SetText(textBox.Text); } catch { } };
