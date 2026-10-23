@@ -2,7 +2,7 @@
 
 [🇨🇳 简体中文](README.zh-CN.md) · [🇺🇸 English](README.md)
 
-<img src="https://img.shields.io/github/license/fengyec2/FreeMove" alt="License"/> <img src="https://img.shields.io/github/v/release/fengyec2/FreeMove" alt="Version"/> <img src="https://img.shields.io/github/actions/workflow/status/fengyec2/FreeMove/build-release.yml" alt="Build"/> <img src="https://img.shields.io/github/downloads/fengyec2/FreeMove/total" alt="Downloads"/>
+<img src="https://img.shields.io/github/license/connorlabianco/FreeMove" alt="License"/> <img src="https://img.shields.io/github/v/release/connorlabianco/FreeMove" alt="Version"/> <img src="https://img.shields.io/github/actions/workflow/status/connorlabianco/FreeMove/build-release.yml" alt="Build"/> <img src="https://img.shields.io/github/downloads/connorlabianco/FreeMove/total" alt="Downloads"/>
 
 Move directories or files freely without breaking installations or shortcuts
 
