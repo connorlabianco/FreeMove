@@ -8,6 +8,26 @@ Move directories or files freely without breaking installations or shortcuts
 
 You can use this tool to move programs that install on `C:\` by default to another drive to save space on your main drive
 
+## Download
+
+[![GitHub Release](https://img.shields.io/github/v/release/connorlabianco/FreeMove?style=for-the-badge&logo=github)](https://github.com/connorlabianco/FreeMove/releases)
+
+**Which version should I download?**
+
+| Version | Description | Requirement |
+| :--- | :--- | :--- |
+| **.NET 8 (Standard)** | Suitable for users with .NET 8 installed. Smallest size. | Requires [.NET 8 Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
+| **.NET 8 (SelfContained)** | Best for portability. Works without installing .NET. | None |
+| **.NET 4.8** | Suitable for users who do not want to install .NET 8 or are using Windows 7/8 | Requires .NET Framework 4.8 (Built-in on Win10/11) |
+
+*Note: Choose the architecture (`win-x64`, `win-x86`, or `win-arm64`) that matches your system.*
+
+<!-- ### From Scoop
+
+`````
+scoop install freemove
+````-->
+
 ## How It works
 1. The files are moved to the new location
 2. A [symbolic link](https://www.wikiwand.com/en/NTFS_junction_point) is created from the old location redirecting to the new one. Any program trying to access a file in the old location will automatically be redirected to its new location
@@ -22,30 +42,9 @@ You can use this tool to move programs that install on `C:\` by default to anoth
 - [x] Everything search integration
 - [x] Context menu integration
 - [x] Individual file symbolic links
+- [x] Size-ranked recommended moves with batch moving
 
 *Currently I have no ideas about future features, please let me know if you have any through PRs or issues.*
-
-## Download
-
-### From GitHub
-
-[![GitHub Release](https://img.shields.io/github/v/release/fengyec2/FreeMove?style=for-the-badge&logo=github)](https://github.com/fengyec2/FreeMove/releases)
-
-**Which version should I download?**
-
-| Version | Description | Requirement |
-| :--- | :--- | :--- |
-| **.NET 8 (Standard)** | Suitable for users with .NET 8 installed. Smallest size. | Requires [.NET 8 Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
-| **.NET 8 (SelfContained)** | Best for portability. Works without installing .NET. | None |
-| **.NET 4.8** | Suitable for users who do not want to install .NET 8 or are using Windows 7/8 | Requires .NET Framework 4.8 (Built-in on Win10/11) |
-
-*Note: Choose the architecture (`win-x64`, `win-x86`, or `win-arm64`) that matches your system.*
-
-<!-- ### From Scoop
-
-```
-scoop install freemove
-``` -->
 
 ## Usage
 
@@ -156,3 +155,4 @@ A: The Everything search integration requires the Everything program to be runni
 ## Contributing
 
 The [original project](https://github.com/imDema/FreeMove) is developed by [imDema](https://github.com/imDema). I am currently maintaining the project and am open to contributions. If you are interested in contributing, leave an issue or comment on an open issue and let me know!
+````
