@@ -1,4 +1,4 @@
-// FreeMove -- Move directories without breaking shortcuts or installations 
+// FreeMove -- Move directories without breaking shortcuts or installations
 //    Copyright(C) 2020  Luca De Martini
 
 //    This program is free software: you can redistribute it and/or modify
@@ -15,49 +15,63 @@
 //    along with this program.If not, see<http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace FreeMove.IO
 {
+    /// <summary>
+    /// Moves a folder or file. Across drives it copies (see <see cref="CopyOperation"/>), then
+    /// deletes the original only after the copy completed and was verified. The journal, when
+    /// given, records the phase so an interrupted move can be finished or rolled back.
+    /// </summary>
     class MoveOperation : IOOperation
     {
-        string pathFrom;
-        string pathTo;
-        bool sameDrive;
-        bool createDestination;
-        CancellationTokenSource cts = new CancellationTokenSource();
-        CopyOperation innerCopy;
+        readonly string pathFrom;
+        readonly string pathTo;
+        readonly bool sameDrive;
+        readonly CancellationTokenSource cts = new CancellationTokenSource();
+        readonly CopyOperation innerCopy;
 
-        /// <summary>
-        /// 创建移动操作，并按当前界面状态决定是否预先创建目标目录。
-        /// </summary>
-        public MoveOperation(string pathFrom, string pathTo, bool createDestination)
+        /// <summary>The write-ahead record of this move, if any.</summary>
+        public MoveJournal Journal { get; }
+
+        /// <summary>Folders created to hold the destination; removed again if the move is rolled back.</summary>
+        public List<string> CreatedParents { get; } = new List<string>();
+
+        /// <summary>Fires after the copy is complete and verified, before the original is deleted.</summary>
+        public event EventHandler CopyCompleted;
+
+        public List<string> Warnings => innerCopy.Warnings;
+
+        public MoveOperation(string pathFrom, string pathTo, bool createDestination, bool overwrite = false, MoveJournal journal = null, bool keepExisting = false)
         {
             this.pathFrom = pathFrom;
             this.pathTo = pathTo;
-            this.createDestination = createDestination;
-            sameDrive = string.Equals(Path.GetPathRoot(pathFrom), Path.GetPathRoot(pathTo), StringComparison.OrdinalIgnoreCase);
-            if (this.createDestination && !Directory.Exists(pathTo))
+            Journal = journal;
+            bool destinationExists = Directory.Exists(pathTo) || File.Exists(pathTo);
+            // Merging into an existing destination always copies (a rename can't merge)
+            sameDrive = !destinationExists &&
+                        string.Equals(Path.GetPathRoot(pathFrom), Path.GetPathRoot(pathTo), StringComparison.OrdinalIgnoreCase);
+
+            if (createDestination && !destinationExists)
             {
                 try
                 {
-                    Directory.CreateDirectory(Directory.GetParent(pathTo).FullName);
+                    CreatedParents.AddRange(IOHelper.CreateDirectoryTracked(Path.GetDirectoryName(pathTo)));
                 }
-                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                catch (UnauthorizedAccessException)
                 {
-                    if (e is UnauthorizedAccessException)
-                    {
-                        throw new UnauthorizedAccessException(Properties.Resources.ResourceManager.GetString("MoveOp_CreateDestUnauthorized"));
-                    }
-                    else
-                    {
-                        throw new IOException(Properties.Resources.ResourceManager.GetString("MoveOp_CreateDestIOError"));
-                    }
+                    throw new UnauthorizedAccessException(Properties.Resources.ResourceManager.GetString("MoveOp_CreateDestUnauthorized"));
+                }
+                catch (IOException)
+                {
+                    throw new IOException(Properties.Resources.ResourceManager.GetString("MoveOp_CreateDestIOError"));
                 }
             }
-            innerCopy = new CopyOperation(pathFrom, pathTo);
+            innerCopy = new CopyOperation(pathFrom, pathTo) { Overwrite = overwrite, Journal = journal, KeepExistingFiles = keepExisting };
         }
 
         public override void Cancel()
@@ -65,6 +79,9 @@ namespace FreeMove.IO
             cts.Cancel();
             innerCopy?.Cancel();
         }
+
+        /// <summary>Removes the folders this move created to hold the destination, if they are empty.</summary>
+        public void RemoveCreatedParents() => IOHelper.RemoveEmptyDirectories(CreatedParents);
 
         public override async Task Run()
         {
@@ -85,6 +102,10 @@ namespace FreeMove.IO
                     {
                         throw new MoveFailedException(Properties.Resources.ResourceManager.GetString("MoveOp_MoveSameDriveFailed"), e);
                     }
+                    // The rename already happened and can't fail halfway, so a journal write problem here
+                    // must not be treated as a failed move (recovery recognises a finished rename anyway)
+                    try { Journal?.SetPhase(JournalPhase.Delete); } catch { }
+                    CopyCompleted?.Invoke(this, EventArgs.Empty);
                 }
                 else
                 {
@@ -98,12 +119,15 @@ namespace FreeMove.IO
                     }
 
                     cts.Token.ThrowIfCancellationRequested();
+
+                    // The copy is complete and verified: from here on, an interrupted move is
+                    // finished rather than rolled back
+                    Journal?.SetPhase(JournalPhase.Delete);
+                    CopyCompleted?.Invoke(this, EventArgs.Empty);
+
                     try
                     {
-                        if (File.Exists(pathFrom))
-                            File.Delete(pathFrom);
-                        else
-                            Directory.Delete(pathFrom, true);
+                        await Task.Run(() => IOHelper.DeleteOriginal(pathFrom));
                     }
                     catch (Exception e)
                     {
@@ -116,6 +140,7 @@ namespace FreeMove.IO
                 OnEnd(new EventArgs());
             }
         }
+
         public class MoveFailedException : Exception
         {
             public MoveFailedException(string message, Exception innerException) : base(message, innerException) { }

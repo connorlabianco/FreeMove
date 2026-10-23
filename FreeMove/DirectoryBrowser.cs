@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace FreeMove
@@ -19,6 +22,24 @@ namespace FreeMove
         public event EventHandler<string> TargetSelected;
         public event EventHandler<RestoreRequestEventArgs> RestoreRequested;
 
+        // Listing a folder and searching run in the background; each request gets a number and
+        // only the latest one's results are shown
+        int listGeneration;
+        // Search waits for a short pause in typing instead of running on every keystroke
+        readonly Timer searchTimer = new Timer { Interval = 300 };
+        // The Everything SDK handles one query at a time
+        static readonly object everythingLock = new object();
+
+        /// <summary>One row of the file list, read in the background.</summary>
+        class EntryRow
+        {
+            public string Name;
+            public string FullPath;
+            public string Type;
+            public string Detail;
+            public bool IsLink;
+        }
+
         public DirectoryBrowser()
         {
             InitializeComponent();
@@ -33,6 +54,14 @@ namespace FreeMove
             listView_Files.Columns.Add(rm.GetString("Column_TargetPath") ?? "Target Path", 250);
 
             LoadDrives();
+
+            searchTimer.Tick += async (s, e) =>
+            {
+                searchTimer.Stop();
+                string query = textBox_Search.Text.Trim();
+                if (!string.IsNullOrEmpty(query)) await PerformSearch(query);
+            };
+            Disposed += (s, e) => searchTimer.Dispose();
         }
 
         private const int EM_SETCUEBANNER = 0x1501;
@@ -151,6 +180,7 @@ namespace FreeMove
         private void textBox_Search_TextChanged(object sender, EventArgs e)
         {
             string query = textBox_Search.Text.Trim();
+            searchTimer.Stop();
             if (string.IsNullOrEmpty(query))
             {
                 if (treeView_Dirs.SelectedNode != null)
@@ -159,16 +189,19 @@ namespace FreeMove
                 }
                 else
                 {
+                    listGeneration++;
                     listView_Files.Items.Clear();
                 }
                 return;
             }
 
-            PerformSearch(query);
+            searchTimer.Start();   // search once typing pauses
         }
 
-        private void PerformSearch(string query)
+        private async Task PerformSearch(string query)
         {
+            int generation = ++listGeneration;
+
             if (!Everything.IsAvailable())
             {
                 string message;
@@ -192,126 +225,96 @@ namespace FreeMove
                 return;
             }
 
-            listView_Files.Items.Clear();
             // 根据工作模式决定是否限制搜索结果为文件夹
-            if (Settings.CurrentWorkMode == Settings.WorkingMode.DirectoryOnly)
-            {
-                query = "folder:" + query;
-            }
+            bool includeFiles = Settings.CurrentWorkMode == Settings.WorkingMode.DirectoryAndFile;
+            string fullQuery = includeFiles ? query : "folder:" + query;
 
-            foreach (string path in Everything.Search(query))
+            List<EntryRow> rows = await Task.Run(() =>
             {
-                try
+                List<string> paths;
+                lock (everythingLock) paths = Everything.Search(fullQuery).ToList();
+                var result = new List<EntryRow>();
+                foreach (string path in paths)
                 {
-                    if (Directory.Exists(path))
+                    try
                     {
-                        DirectoryInfo di = new DirectoryInfo(path);
-                        ListViewItem item = new ListViewItem(di.Name);
-
-                        bool isReparse = IOHelper.IsReparsePoint(di.FullName);
-                        if (isReparse)
-                        {
-                            item.SubItems.Add(Properties.Resources.ResourceManager.GetString("Type_Symlink") ?? "Symbolic Link");
-                            item.SubItems.Add(IOHelper.GetSymbolicLinkTarget(di.FullName) ?? "");
-                            item.ForeColor = Color.Green;
-                        }
-                        else
-                        {
-                            item.SubItems.Add(Properties.Resources.ResourceManager.GetString("Type_Folder") ?? "Folder");
-                            item.SubItems.Add(di.FullName); // 在搜索结果中，第三列显示完整路径
-                        }
-
-                        item.Tag = di.FullName;
-                        listView_Files.Items.Add(item);
+                        if (Directory.Exists(path)) result.Add(MakeRow(path, isDirectory: true, showFullPath: true));
+                        else if (includeFiles && File.Exists(path)) result.Add(MakeRow(path, isDirectory: false, showFullPath: true));
                     }
-                    else if (Settings.CurrentWorkMode == Settings.WorkingMode.DirectoryAndFile && File.Exists(path))
-                    {
-                        FileInfo fi = new FileInfo(path);
-                        ListViewItem item = new ListViewItem(fi.Name);
-
-                        bool isReparse = IOHelper.IsReparsePoint(fi.FullName);
-                        if (isReparse)
-                        {
-                            item.SubItems.Add(Properties.Resources.ResourceManager.GetString("Type_Symlink") ?? "Symbolic Link");
-                            item.SubItems.Add(IOHelper.GetSymbolicLinkTarget(fi.FullName) ?? "");
-                            item.ForeColor = Color.Green;
-                        }
-                        else
-                        {
-                            item.SubItems.Add(Properties.Resources.ResourceManager.GetString("Type_File") ?? "File");
-                            item.SubItems.Add(fi.FullName);
-                        }
-
-                        item.Tag = fi.FullName;
-                        listView_Files.Items.Add(item);
-                    }
+                    catch { /* 忽略搜索结果中的错误项 */ }
                 }
-                catch { /* 忽略搜索结果中的错误项 */ }
-            }
+                return result;
+            });
+
+            if (generation == listGeneration && !IsDisposed) ShowRows(rows);
         }
 
-        private void RefreshListView(string path)
+        /// <summary>Describes one folder or file for the list (link target, or the full path in search results).</summary>
+        static EntryRow MakeRow(string path, bool isDirectory, bool showFullPath)
         {
-            listView_Files.Items.Clear();
-            try
+            var rm = Properties.Resources.ResourceManager;
+            bool isLink = IOHelper.IsReparsePoint(path) && IO.NativeFs.IsLink(path);
+            string type = isLink ? (rm.GetString("Type_Symlink") ?? "Symbolic Link")
+                        : isDirectory ? (rm.GetString("Type_Folder") ?? "Folder")
+                        : (rm.GetString("Type_File") ?? "File");
+            return new EntryRow
             {
-                foreach (string dir in Directory.GetDirectories(path))
+                Name = Path.GetFileName(path.TrimEnd('\\')),
+                FullPath = path,
+                Type = type,
+                Detail = isLink ? (IOHelper.GetSymbolicLinkTarget(path) ?? "") : (showFullPath ? path : ""),
+                IsLink = isLink
+            };
+        }
+
+        void ShowRows(List<EntryRow> rows)
+        {
+            listView_Files.BeginUpdate();
+            listView_Files.Items.Clear();
+            foreach (EntryRow row in rows)
+            {
+                var item = new ListViewItem(row.Name) { Tag = row.FullPath };
+                item.SubItems.Add(row.Type);
+                item.SubItems.Add(row.Detail);
+                if (row.IsLink) item.ForeColor = Color.Green; // 符号链接显示为绿色
+                listView_Files.Items.Add(item);
+            }
+            listView_Files.EndUpdate();
+        }
+
+        /// <summary>Lists a folder in the background so large folders don't freeze the window.</summary>
+        private async void RefreshListView(string path)
+        {
+            int generation = ++listGeneration;
+            bool includeFiles = Settings.CurrentWorkMode == Settings.WorkingMode.DirectoryAndFile;
+
+            List<EntryRow> rows = await Task.Run(() =>
+            {
+                var result = new List<EntryRow>();
+                try
                 {
-                    try
+                    foreach (string dir in Directory.GetDirectories(path))
                     {
-                        DirectoryInfo di = new DirectoryInfo(dir);
-                        ListViewItem item = new ListViewItem(di.Name);
-
-                        bool isReparse = IOHelper.IsReparsePoint(di.FullName);
-                        if (isReparse)
-                        {
-                            item.SubItems.Add(Properties.Resources.ResourceManager.GetString("Type_Symlink") ?? "Symbolic Link");
-                            item.SubItems.Add(IOHelper.GetSymbolicLinkTarget(di.FullName) ?? "");
-                            item.ForeColor = Color.Green; // 符号链接显示为绿色
-                        }
-                        else
-                        {
-                            item.SubItems.Add(Properties.Resources.ResourceManager.GetString("Type_Folder") ?? "Folder");
-                            item.SubItems.Add("");
-                        }
-
-                        item.Tag = di.FullName;
-                        listView_Files.Items.Add(item);
+                        try { result.Add(MakeRow(dir, isDirectory: true, showFullPath: false)); }
+                        catch (UnauthorizedAccessException) { /* 跳过无权限子目录 */ }
                     }
-                    catch (UnauthorizedAccessException) { /* 跳过无权限子目录 */ }
-                }
 
-                // 根据工作模式决定是否列出文件
-                if (Settings.CurrentWorkMode == Settings.WorkingMode.DirectoryAndFile)
-                {
-                    try
+                    // 根据工作模式决定是否列出文件
+                    if (includeFiles)
                     {
                         foreach (string file in Directory.GetFiles(path))
                         {
-                            FileInfo fi = new FileInfo(file);
-                            ListViewItem item = new ListViewItem(fi.Name);
-
-                            bool isReparse = IOHelper.IsReparsePoint(fi.FullName);
-                            if (isReparse)
-                            {
-                                item.SubItems.Add(Properties.Resources.ResourceManager.GetString("Type_Symlink") ?? "Symbolic Link");
-                                item.SubItems.Add(IOHelper.GetSymbolicLinkTarget(fi.FullName) ?? "");
-                                item.ForeColor = Color.Green;
-                            }
-                            else
-                            {
-                                item.SubItems.Add(Properties.Resources.ResourceManager.GetString("Type_File") ?? "File");
-                                item.SubItems.Add("");
-                            }
-                            item.Tag = fi.FullName;
-                            listView_Files.Items.Add(item);
+                            try { result.Add(MakeRow(file, isDirectory: false, showFullPath: false)); }
+                            catch (UnauthorizedAccessException) { /* 跳过无权限文件 */ }
                         }
                     }
-                    catch (UnauthorizedAccessException) { /* 跳过无权限文件 */ }
                 }
-            }
-            catch (UnauthorizedAccessException) { /* 跳过无权限根目录 */ }
-            catch (Exception ex) { Console.WriteLine(ex.Message); }
+                catch (UnauthorizedAccessException) { /* 跳过无权限根目录 */ }
+                catch (Exception ex) { Console.WriteLine(ex.Message); }
+                return result;
+            });
+
+            if (generation == listGeneration && !IsDisposed) ShowRows(rows);
         }
 
         private void button_SetSource_Click(object sender, EventArgs e)
@@ -498,7 +501,7 @@ namespace FreeMove
         // Helper for Input Dialog
         private string ShowInputDialog(string text, string caption, string defaultValue = "")
         {
-            Form prompt = new Form()
+            using (Form prompt = new Form()
             {
                 Width = 400,
                 Height = 150,
@@ -507,17 +510,46 @@ namespace FreeMove
                 StartPosition = FormStartPosition.CenterParent,
                 MaximizeBox = false,
                 MinimizeBox = false
-            };
-            Label textLabel = new Label() { Left = 20, Top = 20, Text = text, AutoSize = true };
-            TextBox textBox = new TextBox() { Left = 20, Top = 50, Width = 340, Text = defaultValue };
-            Button confirmation = new Button() { Text = Properties.Resources.ResourceManager.GetString("Button_OK"), Left = 260, Width = 100, Top = 80, DialogResult = DialogResult.OK };
+            })
+            {
+                Label textLabel = new Label() { Left = 20, Top = 20, Text = text, AutoSize = true };
+                TextBox textBox = new TextBox() { Left = 20, Top = 50, Width = 340, Text = defaultValue };
+                Button confirmation = new Button() { Text = Properties.Resources.ResourceManager.GetString("Button_OK"), Left = 260, Width = 100, Top = 80, DialogResult = DialogResult.OK };
 
-            prompt.Controls.Add(textBox);
-            prompt.Controls.Add(confirmation);
-            prompt.Controls.Add(textLabel);
-            prompt.AcceptButton = confirmation;
+                prompt.Controls.Add(textBox);
+                prompt.Controls.Add(confirmation);
+                prompt.Controls.Add(textLabel);
+                prompt.AcceptButton = confirmation;
 
-            return prompt.ShowDialog() == DialogResult.OK ? textBox.Text : "";
+                return prompt.ShowDialog(FindForm()) == DialogResult.OK ? textBox.Text : "";
+            }
+        }
+
+        static readonly string[] ReservedNames =
+        {
+            "CON", "PRN", "AUX", "NUL",
+            "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+            "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+        };
+
+        /// <summary>
+        /// Checks a new file or folder name. It must be a plain name: no folder separators, no
+        /// drive or full path (which would create the item somewhere else), no "." or "..", no
+        /// characters Windows doesn't allow, and not a reserved device name.
+        /// Returns an error message, or null when the name is fine.
+        /// </summary>
+        static string ValidateName(string name)
+        {
+            string invalid = Properties.Resources.ResourceManager.GetString("Error_InvalidName") ?? "\"{0}\" isn't a valid name. Use a plain name without \\ / : * ? \" < > |.";
+            if (string.IsNullOrWhiteSpace(name)) return string.Format(invalid, name);
+            if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || name.Contains("\\") || name.Contains("/") || name.Contains(":"))
+                return string.Format(invalid, name);
+            if (name == "." || name == ".." || name.EndsWith(".") || name.EndsWith(" "))
+                return string.Format(invalid, name);
+            string stem = name.Split('.')[0].Trim();
+            if (ReservedNames.Contains(stem, StringComparer.OrdinalIgnoreCase))
+                return string.Format(invalid, name);
+            return null;
         }
 
         // TreeView Context Menu Handlers
@@ -601,6 +633,12 @@ namespace FreeMove
             string name = ShowInputDialog(prompt, title);
 
             if (string.IsNullOrWhiteSpace(name)) return;
+            string nameError = ValidateName(name);
+            if (nameError != null)
+            {
+                MessageBox.Show(nameError, Properties.Resources.ResourceManager.GetString("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             string fullPath = Path.Combine(currentPath, name);
             try
@@ -690,6 +728,12 @@ namespace FreeMove
             string newName = ShowInputDialog(prompt, renameTitle, oldName);
 
             if (string.IsNullOrWhiteSpace(newName) || newName == oldName) return;
+            string nameError = ValidateName(newName);
+            if (nameError != null)
+            {
+                MessageBox.Show(nameError, Properties.Resources.ResourceManager.GetString("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             string parentDir = Path.GetDirectoryName(oldPath);
             string newPath = Path.Combine(parentDir, newName);

@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -100,45 +101,155 @@ namespace FreeMove
         }
 
         /// <summary>
-        /// 获取符号链接或挂载点的目标路径
+        /// 获取符号链接或挂载点的目标路径 (the final location, following every link; null if it doesn't exist)
         /// </summary>
-        public static string GetSymbolicLinkTarget(string path)
-        {
-            // Use FILE_FLAG_BACKUP_SEMANTICS to open directory
-            IntPtr handle = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, IntPtr.Zero, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, IntPtr.Zero);
-            if (handle == IntPtr.Zero || handle == new IntPtr(-1)) return null;
-
-            try
-            {
-                StringBuilder sb = new StringBuilder(1024);
-                uint res = GetFinalPathNameByHandle(handle, sb, (uint)sb.Capacity, VOLUME_NAME_DOS | FILE_NAME_NORMALIZED);
-                if (res == 0) return null;
-
-                string target = sb.ToString();
-
-                // Normalize path: strip NT prefixes
-                if (target.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase))
-                    target = @"\\" + target.Substring(8);
-                else if (target.StartsWith(@"\\?\"))
-                    target = target.Substring(4);
-
-                return target;
-            }
-            finally
-            {
-                CloseHandle(handle);
-            }
-        }
+        public static string GetSymbolicLinkTarget(string path) => IO.NativeFs.ResolveFinalPath(path);
         #endregion
 
-        public static IO.MoveOperation MoveDir(string source, string destination, bool createDestination)
+        public static IO.MoveOperation MoveDir(string source, string destination, bool createDestination, bool overwrite = false, IO.MoveJournal journal = null, bool keepExisting = false)
         {
-            return new IO.MoveOperation(source, destination, createDestination);
+            return new IO.MoveOperation(source, destination, createDestination, overwrite, journal, keepExisting);
         }
+
+        /// <summary>Creates a folder and any missing parents; returns the folders it created, outermost first.</summary>
+        public static List<string> CreateDirectoryTracked(string path)
+        {
+            var missing = new List<string>();
+            string current = Path.GetFullPath(path).TrimEnd('\\');
+            while (!string.IsNullOrEmpty(current) && !Directory.Exists(current))
+            {
+                missing.Insert(0, current);
+                current = Path.GetDirectoryName(current);
+            }
+            foreach (string dir in missing) Directory.CreateDirectory(dir);
+            return missing;
+        }
+
+        /// <summary>Removes the given folders, deepest first, but only those that are empty.</summary>
+        public static void RemoveEmptyDirectories(IEnumerable<string> directories)
+        {
+            foreach (string dir in directories.OrderByDescending(d => d.Length))
+            {
+                try
+                {
+                    if (Directory.Exists(dir) && !Directory.EnumerateFileSystemEntries(dir).Any())
+                        Directory.Delete(dir);
+                }
+                catch { }
+            }
+        }
+
+        /// <summary>
+        /// Deletes the original after a verified copy. Read-only flags are cleared first (they make
+        /// deletes fail); links inside are removed without touching what they point to.
+        /// </summary>
+        public static void DeleteOriginal(string path)
+        {
+            if (File.Exists(path))
+            {
+                File.SetAttributes(path, FileAttributes.Normal);
+                File.Delete(path);
+                return;
+            }
+            ClearReadOnlyAttributes(path);
+            Directory.Delete(path, true);
+        }
+
+        static string NormalizePath(string path) => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar);
+
+        /// <summary>True when <paramref name="path"/> is <paramref name="folder"/> or inside it.</summary>
+        static bool IsSameOrUnder(string path, string folder)
+        {
+            string p = NormalizePath(path);
+            string f = NormalizePath(folder);
+            return p.Equals(f, StringComparison.OrdinalIgnoreCase) ||
+                   p.StartsWith(f + "\\", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Why <paramref name="source"/> must not be moved, or null. Windows' own folders are
+        /// protected with everything inside them; the folders that hold programs and profiles are
+        /// protected themselves (moving something inside them is fine) and, in safe mode, the same
+        /// goes for program and app-data folders.
+        /// </summary>
+        static string GetProtectionReason(string source, bool safeMode)
+        {
+            string windowsPath = Environment.GetEnvironmentVariable("WINDIR") ?? Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+            string drive = Path.GetPathRoot(windowsPath);
+            string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string usersPath = Path.GetDirectoryName(userProfile) ?? Path.Combine(drive, "Users");
+            string tempPath = Path.GetTempPath();
+
+            string cannotMove = Properties.Resources.ResourceManager.GetString("Error_DirectoryCannotMove");
+            string safeModeBlocked = Properties.Resources.ResourceManager.GetString("Error_SafeModeProgramFiles");
+
+            // Windows and its system areas, including everything inside them
+            string[] protectedTrees =
+            {
+                windowsPath,
+                Path.Combine(drive, "boot"),
+                Path.Combine(drive, "System Volume Information"),
+                Path.Combine(drive, "$Recycle.Bin"),
+                Path.Combine(drive, "Recovery"),
+                Path.Combine(drive, "$WinREAgent"),
+                Path.Combine(programData, "Microsoft"),
+                Path.Combine(programFiles, "WindowsApps"),
+                tempPath
+            };
+            foreach (string tree in protectedTrees)
+            {
+                if (!string.IsNullOrEmpty(tree) && IsSameOrUnder(source, tree))
+                    return string.Format(CultureInfo.CurrentUICulture, cannotMove, source);
+            }
+
+            // The containers themselves
+            string[] protectedFolders = { drive, usersPath, programData, Path.Combine(drive, "Documents and Settings") };
+            foreach (string folder in protectedFolders)
+            {
+                if (NormalizePath(source).Equals(NormalizePath(folder), StringComparison.OrdinalIgnoreCase))
+                    return string.Format(CultureInfo.CurrentUICulture, cannotMove, source);
+            }
+
+            // Any profile folder (C:\Users\<anyone>, Public, Default): moving one breaks sign-in
+            string parent = Path.GetDirectoryName(NormalizePath(source));
+            if (parent != null && NormalizePath(parent).Equals(NormalizePath(usersPath), StringComparison.OrdinalIgnoreCase))
+                return string.Format(CultureInfo.CurrentUICulture, cannotMove, source);
+
+            if (safeMode)
+            {
+                string[] safeTrees =
+                {
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonProgramFiles),
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonProgramFilesX86)
+                };
+                foreach (string tree in safeTrees)
+                {
+                    if (!string.IsNullOrEmpty(tree) && IsSameOrUnder(source, tree))
+                        return string.Format(CultureInfo.CurrentUICulture, safeModeBlocked, source);
+                }
+
+                string[] safeFolders =
+                {
+                    programFiles, programFilesX86,
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+                };
+                foreach (string folder in safeFolders)
+                {
+                    if (!string.IsNullOrEmpty(folder) && NormalizePath(source).Equals(NormalizePath(folder), StringComparison.OrdinalIgnoreCase))
+                        return string.Format(CultureInfo.CurrentUICulture, safeModeBlocked, source);
+                }
+            }
+            return null;
+        }
+
         /// <summary>
         /// 根据当前界面状态和指定的权限检查级别执行移动前预检查。
         /// </summary>
-        public static void CheckDirectories(string source, string destination, bool safeMode, bool createDestination, Settings.PermissionCheckLevel? permissionCheckLevelOverride = null, bool skipAllChecks = false)
+        public static void CheckDirectories(string source, string destination, bool safeMode, bool createDestination, Settings.PermissionCheckLevel? permissionCheckLevelOverride = null, bool skipAllChecks = false, bool allowExistingDestination = false)
         {
             // 如果禁用所有安全检查，直接返回
             if (skipAllChecks)
@@ -146,8 +257,10 @@ namespace FreeMove
                 return;
             }
 
+            var rm = Properties.Resources.ResourceManager;
             List<Exception> exceptions = new List<Exception>();
             Settings.PermissionCheckLevel permissionCheckLevel = permissionCheckLevelOverride ?? Settings.PermCheck;
+
             //Check for correct file path format
             try
             {
@@ -156,132 +269,117 @@ namespace FreeMove
             }
             catch (Exception e)
             {
-                exceptions.Add(new Exception(Properties.Resources.ResourceManager.GetString("Error_InvalidPath"), e));
+                exceptions.Add(new Exception(rm.GetString("Error_InvalidPath"), e));
             }
             string pattern = @"^[A-Za-z]:\\{1,2}";
             if (!Regex.IsMatch(source, pattern) || !Regex.IsMatch(destination, pattern))
             {
-                exceptions.Add(new Exception(Properties.Resources.ResourceManager.GetString("Error_InvalidPathFormat")));
+                exceptions.Add(new Exception(rm.GetString("Error_InvalidPathFormat")));
             }
+            if (exceptions.Count > 0)
+                throw new AggregateException(exceptions);
 
-            //Check if the chosen directory is blacklisted
-            string windowsPath = Environment.GetEnvironmentVariable("WINDIR") ?? Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-            string system32Path = Environment.GetFolderPath(Environment.SpecialFolder.System);
-            string sysWOW64Path = Path.Combine(windowsPath, "SysWOW64");
-            string configPath = Path.Combine(windowsPath, "Config");
-            string programDataPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-            string drivePath = Path.GetPathRoot(windowsPath);
-            string tempPath = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar);
-            string usersPath = Path.Combine(drivePath, "Users");
-            string bootPath = Path.Combine(drivePath, "boot");
-            string systemVolumeInfoPath = Path.Combine(drivePath, "System Volume Information");
-            string recycleBinPath = Path.Combine(drivePath, "$Recycle.Bin");
+            // Moving something into itself would copy forever
+            if (IsSameOrUnder(destination, source))
+                exceptions.Add(new Exception(string.Format(rm.GetString("Error_DestInsideSource") ?? "Can't move {0} into itself.", source)));
 
-            string normalizedSource = Path.GetFullPath(source).TrimEnd(Path.DirectorySeparatorChar).ToUpperInvariant();
-            string[] Blacklist = { windowsPath, system32Path, sysWOW64Path, configPath, programDataPath, drivePath, tempPath, usersPath, bootPath, systemVolumeInfoPath, recycleBinPath };
-            foreach (string item in Blacklist)
-            {
-                string normalizedItem = Path.GetFullPath(item).TrimEnd(Path.DirectorySeparatorChar).ToUpperInvariant();
-                if (normalizedSource == normalizedItem)
-                {
-                    exceptions.Add(new Exception(string.Format(CultureInfo.CurrentUICulture, Properties.Resources.ResourceManager.GetString("Error_DirectoryCannotMove"), source)));
-                }
-            }
+            // A link has nothing to move (use Restore symbolic link instead)
+            if (IO.NativeFs.IsLink(source))
+                exceptions.Add(new Exception(string.Format(rm.GetString("Error_SourceIsLink") ?? "{0} is already a link, so there is nothing to move.", source)));
 
-            //Check if folder is critical
-            if (safeMode)
-            {
-                string programFilesPath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-                string programFilesX86Path = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-                string commonProgramFilesPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonProgramFiles);
-                string commonProgramFilesX86Path = Environment.GetFolderPath(Environment.SpecialFolder.CommonProgramFilesX86);
-                string userProfilePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                string localAppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-
-                string normalizedSourceForSafeMode = Path.GetFullPath(source).TrimEnd(Path.DirectorySeparatorChar).ToUpperInvariant();
-                string[] safePaths = { programFilesPath, programFilesX86Path, commonProgramFilesPath, commonProgramFilesX86Path, userProfilePath, appDataPath, localAppDataPath };
-                foreach (string item in safePaths)
-                {
-                    string normalizedSafePath = Path.GetFullPath(item).TrimEnd(Path.DirectorySeparatorChar).ToUpperInvariant();
-                    if (normalizedSourceForSafeMode == normalizedSafePath)
-                    {
-                        exceptions.Add(new Exception(string.Format(CultureInfo.CurrentUICulture, Properties.Resources.ResourceManager.GetString("Error_SafeModeProgramFiles"), source)));
-                        break;
-                    }
-                }
-            }
+            string protection = GetProtectionReason(source, safeMode);
+            if (protection != null) exceptions.Add(new Exception(protection));
 
             //Check for existence of directories
             if (!Directory.Exists(source) && !File.Exists(source))
-                exceptions.Add(new Exception(Properties.Resources.ResourceManager.GetString("Error_SourceNotExist")));
+                exceptions.Add(new Exception(rm.GetString("Error_SourceNotExist")));
 
             if (Directory.Exists(destination) || File.Exists(destination))
-                exceptions.Add(new Exception(Properties.Resources.ResourceManager.GetString("Error_DestNameExists")));
+            {
+                // Merging into an existing destination is allowed only when the person chose to
+                // overwrite, and only into the same kind of item (folder into folder, file over file)
+                bool sameKind = Directory.Exists(source) ? Directory.Exists(destination) : File.Exists(destination);
+                if (!allowExistingDestination || !sameKind || IsReparsePoint(destination))
+                    exceptions.Add(new Exception(rm.GetString("Error_DestNameExists")));
+            }
 
-            if (!createDestination && !Directory.Exists(Directory.GetParent(destination).FullName))
-                exceptions.Add(new Exception(Properties.Resources.ResourceManager.GetString("Error_DestParentNotExist")));
+            string destinationParent = Path.GetDirectoryName(destination);
+            if (!createDestination && (destinationParent == null || !Directory.Exists(destinationParent)))
+                exceptions.Add(new Exception(rm.GetString("Error_DestParentNotExist")));
 
             // Next checks rely on the previous so if there was any exception return
             if (exceptions.Count > 0)
                 throw new AggregateException(exceptions);
 
-            //Check admin privileges
-            string TestFile = Path.Combine(Path.GetDirectoryName(source), "deleteme");
-            int ti;
-            for (ti = 0; File.Exists(TestFile + ti.ToString()); ti++) ; // Change name if a file with the same name already exists
-            TestFile += ti.ToString();
-
+            // Check privileges: create a file, then a link, next to the source. Unique names, and
+            // both are removed even if a check fails.
+            string sourceParent = Path.GetDirectoryName(NormalizePath(source));
+            string testFile = Path.Combine(sourceParent, ".freemove-check-" + Guid.NewGuid().ToString("N"));
+            string testLink = testFile + "-link";
             try
             {
-                // DEPRECATED // System.Security.AccessControl.DirectorySecurity ds = Directory.GetAccessControl(source);
-                //Try creating a file to check permissions
-                File.Create(TestFile).Close();
+                File.Create(testFile).Close();
             }
             catch (UnauthorizedAccessException e)
             {
-                exceptions.Add(new Exception(Properties.Resources.ResourceManager.GetString("Error_NoPrivileges"), e));
+                exceptions.Add(new Exception(rm.GetString("Error_NoPrivileges"), e));
             }
             finally
             {
-                if (File.Exists(TestFile))
-                    File.Delete(TestFile);
+                try { if (File.Exists(testFile)) File.Delete(testFile); } catch { }
             }
 
-            //Try creating a symbolic link to check permissions
+            string linkTarget = Directory.Exists(destinationParent) ? destinationParent : Path.GetPathRoot(destination);
             try
             {
-                if (!CreateSymbolicLink(TestFile, Path.GetDirectoryName(destination), SymbolicLink.Directory))
-                    exceptions.Add(new Exception(Properties.Resources.ResourceManager.GetString("Error_CannotCreateSymlinkTest")));
+                if (!CreateSymbolicLink(testLink, linkTarget, SymbolicLink.Directory))
+                    exceptions.Add(new Exception(rm.GetString("Error_CannotCreateSymlinkTest")));
             }
             finally
             {
-                if (Directory.Exists(TestFile))
-                    Directory.Delete(TestFile);
+                try { if (Directory.Exists(testLink)) Directory.Delete(testLink); } catch { }
             }
 
             // Next checks rely on the previous so if there was any exception return
             if (exceptions.Count > 0)
                 throw new AggregateException(exceptions);
 
+            // One pass over the files: total size, and the files the permission check will open.
+            // Links inside the folder are not followed (their contents live elsewhere).
             long size = 0;
-            if (File.Exists(source))
+            var filesToCheck = new List<string>();
+            try
             {
-                size = new FileInfo(source).Length;
-            }
-            else
-            {
-                DirectoryInfo dirInf = new DirectoryInfo(source);
-                foreach (FileInfo file in dirInf.GetFiles("*", SearchOption.AllDirectories))
+                IEnumerable<string> files = File.Exists(source) ? new[] { source } : IO.NativeFs.EnumerateFiles(source, skipUnreadable: false);
+                foreach (string file in files)
                 {
-                    size += file.Length;
+                    FileInfo info = new FileInfo(file);
+                    if ((info.Attributes & FileAttributes.ReparsePoint) != 0 && IO.NativeFs.IsLink(file)) continue;
+                    size += info.Length;
+
+                    if (permissionCheckLevel == Settings.PermissionCheckLevel.Full)
+                    {
+                        filesToCheck.Add(file);
+                    }
+                    else if (permissionCheckLevel == Settings.PermissionCheckLevel.Fast)
+                    {
+                        string ext = info.Extension;
+                        if (ext.Equals(".exe", StringComparison.OrdinalIgnoreCase) || ext.Equals(".dll", StringComparison.OrdinalIgnoreCase))
+                            filesToCheck.Add(file);
+                    }
                 }
             }
+            catch (Exception e) when (e is UnauthorizedAccessException || e is IOException)
+            {
+                exceptions.Add(new Exception(string.Format(rm.GetString("Error_CannotRead") ?? "Can't read everything inside {0}: {1}", source, e.Message), e));
+                throw new AggregateException(exceptions);
+            }
+
             try
             {
                 DriveInfo dstDrive = new(Path.GetPathRoot(destination));
                 if (dstDrive.AvailableFreeSpace < size)
-                    exceptions.Add(new Exception(string.Format(CultureInfo.CurrentUICulture, Properties.Resources.ResourceManager.GetString("Error_InsufficientDiskSpace"), dstDrive.Name, size / 1000000, dstDrive.AvailableFreeSpace / 1000000)));
+                    exceptions.Add(new Exception(string.Format(CultureInfo.CurrentUICulture, rm.GetString("Error_InsufficientDiskSpace"), dstDrive.Name, size / 1000000, dstDrive.AvailableFreeSpace / 1000000)));
             }
             catch (Exception e)
             {
@@ -291,35 +389,20 @@ namespace FreeMove
             if (exceptions.Count > 0)
                 throw new AggregateException(exceptions);
 
-            //If set to do full check try to open for write all files
-            if (permissionCheckLevel != Settings.PermissionCheckLevel.None)
+            // Open the selected files for exclusive write access: catches files in use before
+            // anything is copied. (Read-only files no longer block a move: the flag is cleared
+            // before the original is deleted.)
+            if (permissionCheckLevel != Settings.PermissionCheckLevel.None && filesToCheck.Count > 0)
             {
                 var exceptionBag = new ConcurrentBag<Exception>();
-                Action<string> CheckFile = (file) =>
+                Parallel.ForEach(filesToCheck, new ParallelOptions { MaxDegreeOfParallelism = 4 }, file =>
                 {
                     Exception failure = TryCreateAccessCheckException(file);
                     if (failure != null)
                     {
                         exceptionBag.Add(failure);
                     }
-                };
-
-                if (File.Exists(source))
-                {
-                    CheckFile(source);
-                }
-                else
-                {
-                    if (permissionCheckLevel == Settings.PermissionCheckLevel.Fast)
-                    {
-                        Parallel.ForEach(Directory.GetFiles(source, "*.exe", SearchOption.AllDirectories), CheckFile);
-                        Parallel.ForEach(Directory.GetFiles(source, "*.dll", SearchOption.AllDirectories), CheckFile);
-                    }
-                    else
-                    {
-                        Parallel.ForEach(Directory.GetFiles(source, "*", SearchOption.AllDirectories), CheckFile);
-                    }
-                }
+                });
 
                 exceptions.AddRange(exceptionBag);
             }
@@ -363,9 +446,9 @@ namespace FreeMove
             foreach (string directory in Directory.GetDirectories(rootPath))
             {
                 ClearReadOnlyAttribute(directory);
-                if (IsReparsePoint(directory))
+                if (IO.NativeFs.IsLink(directory))
                 {
-                    continue;
+                    continue;   // a link: what it points to isn't part of this folder
                 }
 
                 ClearReadOnlyAttributes(directory);

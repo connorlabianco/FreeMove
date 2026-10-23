@@ -32,6 +32,7 @@ namespace FreeMove
             {
                 cancellable = value;
                 button_Cancel.Enabled = value; // WARN: could cause exception if called when button_Cancel is not intitialized!
+                if (button_Skip != null) button_Skip.Enabled = value; // queue mode: skipping is only possible while copying
             }
         }
 

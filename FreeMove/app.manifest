@@ -57,6 +57,14 @@
   </application>
   -->
 
+  <!-- Paths longer than 260 characters (needed by the .NET Framework 4.8 build; Windows must also
+       have long paths enabled: Group Policy "Enable Win32 long paths" or LongPathsEnabled=1) -->
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings xmlns:ws2="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
+      <ws2:longPathAware>true</ws2:longPathAware>
+    </windowsSettings>
+  </application>
+
   <!-- Abilita i temi per finestre di dialogo e controlli comuni di Windows (Windows XP e versioni successive) -->
   <!--
   <dependency>

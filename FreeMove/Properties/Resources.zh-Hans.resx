@@ -733,13 +733,317 @@ https://github.com/fengyec2</value>
     <value>批量迁移已取消；其余文件夹未作改动。</value>
   </data>
   <data name="Rec_MoveBackFailed" xml:space="preserve">
-    <value>移回也失败了（{0}）；文件现分散在 {1} 和 {2} 中。</value>
+    <value>移回也失败了（{0}）；文件现分散在 {1} 和 {2} 中。FreeMove 将在下次启动时完成。</value>
   </data>
   <data name="Rec_LinkFailed" xml:space="preserve">
     <value>无法创建链接（{0}）；文件夹已移回原位置。</value>
   </data>
   <data name="Rec_LinkFailedStranded" xml:space="preserve">
-    <value>无法创建链接（{0}），也无法将文件夹移回（{1}）。其文件现位于 {2}。</value>
+    <value>无法创建链接（{0}），也无法将文件夹移回（{1}）。其文件现位于 {2}。FreeMove 将在下次启动时完成。</value>
+  </data>
+  <data name="Menu_History" xml:space="preserve">
+    <value>历史记录</value>
+  </data>
+  <data name="Hist_Title" xml:space="preserve">
+    <value>迁移历史</value>
+  </data>
+  <data name="Hist_BatchRecommended" xml:space="preserve">
+    <value>推荐迁移</value>
+  </data>
+  <data name="Hist_ChangedTip" xml:space="preserve">
+    <value>链接或已迁移的文件缺失或不再匹配，无法自动撤销。</value>
+  </data>
+  <data name="Hist_Clear" xml:space="preserve">
+    <value>清除已完成</value>
+  </data>
+  <data name="Hist_ClearConfirm" xml:space="preserve">
+    <value>从历史记录中移除已撤销或已失效的迁移？仍可撤销的迁移会保留。</value>
+  </data>
+  <data name="Hist_Empty" xml:space="preserve">
+    <value>暂无迁移记录。使用 FreeMove 进行的迁移会显示在这里。</value>
+  </data>
+  <data name="Hist_ErrChanged" xml:space="preserve">
+    <value>迁移后链接或文件已发生变化，无法自动撤销。</value>
+  </data>
+  <data name="Hist_ErrSpace" xml:space="preserve">
+    <value>{0} 空间不足：需要 {1}，可用 {2}。</value>
+  </data>
+  <data name="Hist_Hint" xml:space="preserve">
+    <value>勾选要撤销的迁移。展开批量迁移可选择单个文件夹。</value>
+  </data>
+  <data name="Hist_StateChanged" xml:space="preserve">
+    <value>已在 FreeMove 外更改</value>
+  </data>
+  <data name="Hist_StateMoved" xml:space="preserve">
+    <value>已迁移</value>
+  </data>
+  <data name="Hist_StateUndone" xml:space="preserve">
+    <value>已撤销</value>
+  </data>
+  <data name="Hist_Status" xml:space="preserve">
+    <value>已选择 {0} 项，需移回 {1}。</value>
+  </data>
+  <data name="Hist_SummaryCancelled" xml:space="preserve">
+    <value>撤销已取消；其余项目未作改动。</value>
+  </data>
+  <data name="Hist_SummaryFailed" xml:space="preserve">
+    <value>以下项目未能移回，保持原样：</value>
+  </data>
+  <data name="Hist_SummaryUndone" xml:space="preserve">
+    <value>已将 {0} 项（共 {1}）移回原位置。</value>
+  </data>
+  <data name="Hist_SummaryWarnings" xml:space="preserve">
+    <value>已移回，附注如下：</value>
+  </data>
+  <data name="Hist_UndoConfirm" xml:space="preserve">
+    <value>将 {0} 项移回原位置？
+
+{1}
+
+原驱动器需要 {2} 的可用空间。请先关闭使用这些文件夹的程序。</value>
+  </data>
+  <data name="Hist_UndoSelected" xml:space="preserve">
+    <value>撤销所选</value>
+  </data>
+  <data name="Hist_UndoTitle" xml:space="preserve">
+    <value>撤销迁移</value>
+  </data>
+  <data name="Hist_WarnLeftover" xml:space="preserve">
+    <value>{0} 中可能仍有残留文件。</value>
+  </data>
+  <data name="Hist_WarnLinkLeft" xml:space="preserve">
+    <value>无法删除旧链接 {0}（{1}）；你可以手动删除。</value>
+  </data>
+  <data name="Rec_SummaryUndoHint" xml:space="preserve">
+    <value>你可以在“历史记录”中撤销这些迁移。</value>
+  </data>
+  <data name="Queue_ItemFormat" xml:space="preserve">
+    <value>第 {0} 项，共 {1} 项：{2}</value>
+  </data>
+  <data name="Queue_Skip" xml:space="preserve">
+    <value>跳过</value>
+  </data>
+  <data name="Queue_SkipRemaining" xml:space="preserve">
+    <value>跳过剩余</value>
+  </data>
+  <data name="Queue_RemainingWillSkip" xml:space="preserve">
+    <value>（剩余项目将被跳过）</value>
+  </data>
+  <data name="Queue_SkipConfirm" xml:space="preserve">
+    <value>跳过此项？它将恢复为原样，然后开始下一项。</value>
+  </data>
+  <data name="Rec_SummarySkipped" xml:space="preserve">
+    <value>已跳过（保持原样）：</value>
+  </data>
+  <data name="Hist_SummarySkipped" xml:space="preserve">
+    <value>已跳过（仍保持迁移，链接未改动）：</value>
+  </data>
+  <data name="Hist_BatchUndo" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="Hist_BatchManual" xml:space="preserve">
+    <value>迁移</value>
+  </data>
+  <data name="Hist_ItemsFormat" xml:space="preserve">
+    <value>{0} 项，{1}</value>
+  </data>
+  <data name="Hist_StateMovedBack" xml:space="preserve">
+    <value>已移回</value>
+  </data>
+  <data name="Conflict_CancelBatch" xml:space="preserve">
+    <value>取消批量操作</value>
+  </data>
+  <data name="Conflict_ColDest" xml:space="preserve">
+    <value>目标位置已存在</value>
+  </data>
+  <data name="Conflict_ColExisting" xml:space="preserve">
+    <value>现有项目数</value>
+  </data>
+  <data name="Conflict_ColSource" xml:space="preserve">
+    <value>待迁移</value>
+  </data>
+  <data name="Conflict_Continue" xml:space="preserve">
+    <value>继续</value>
+  </data>
+  <data name="Conflict_Intro" xml:space="preserve">
+    <value>以下项目在目标位置已存在。未勾选的项目将被跳过，不会覆盖任何内容。勾选项目即可覆盖：同名文件会被迁移的文件替换，目标中的其他文件会保留。</value>
+  </data>
+  <data name="Conflict_ManualQuestion" xml:space="preserve">
+    <value>{0} 已存在。
+
+是否覆盖？同名文件将被迁移的文件替换；目标中已有的其他文件会保留。
+
+是：覆盖并迁移
+否：不迁移</value>
+  </data>
+  <data name="Conflict_OverwriteAll" xml:space="preserve">
+    <value>全部覆盖</value>
+  </data>
+  <data name="Conflict_SkipAll" xml:space="preserve">
+    <value>全部跳过</value>
+  </data>
+  <data name="Conflict_SkippedNote" xml:space="preserve">
+    <value>（目标位置已存在）</value>
+  </data>
+  <data name="Conflict_Title" xml:space="preserve">
+    <value>目标位置已存在</value>
+  </data>
+  <data name="InUse_CannotEnd" xml:space="preserve">
+    <value>（系统进程或服务；请自行关闭）</value>
+  </data>
+  <data name="InUse_EndAndRetry" xml:space="preserve">
+    <value>结束任务并重试</value>
+  </data>
+  <data name="InUse_EndConfirm" xml:space="preserve">
+    <value>结束以下程序？
+
+{0}
+
+其中未保存的工作将会丢失。</value>
+  </data>
+  <data name="InUse_EndFailed" xml:space="preserve">
+    <value>部分程序无法结束</value>
+  </data>
+  <data name="InUse_Intro" xml:space="preserve">
+    <value>以下项目因正被程序使用而被暂时搁置。你可以结束这些程序后重试、自行关闭后重试，或跳过这些文件夹。它们没有发生任何改动。</value>
+  </data>
+  <data name="InUse_Retry" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="InUse_Skip" xml:space="preserve">
+    <value>跳过这些</value>
+  </data>
+  <data name="InUse_SkippedNote" xml:space="preserve">
+    <value>（正在使用）</value>
+  </data>
+  <data name="InUse_Title" xml:space="preserve">
+    <value>正在使用的文件夹</value>
+  </data>
+  <data name="InUse_Unknown" xml:space="preserve">
+    <value>正在使用，但无法识别使用它的程序</value>
+  </data>
+  <data name="LongMsg_Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="LongMsg_Hint" xml:space="preserve">
+    <value>滚动查看全部内容。你可以调整窗口大小并复制文本。</value>
+  </data>
+  <data name="LongMsg_No" xml:space="preserve">
+    <value>否</value>
+  </data>
+  <data name="LongMsg_OK" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="LongMsg_Yes" xml:space="preserve">
+    <value>是</value>
+  </data>
+  <data name="Rec_ColInUse" xml:space="preserve">
+    <value>正在使用的程序</value>
+  </data>
+  <data name="Rec_InUseTip" xml:space="preserve">
+    <value>此程序当前正在运行。请在迁移前关闭它，否则 FreeMove 会提供结束它的选项。</value>
+  </data>
+  <data name="Conflict_RolledBack" xml:space="preserve">
+    <value>未迁移任何内容。{0} 已恢复为原来的状态。</value>
+  </data>
+  <data name="Hist_ErrMergeRecord" xml:space="preserve">
+    <value>此次迁移已合并到现有文件夹中，但无法读取记录了迁移文件的清单（{0}），因此无法在不影响原有文件的情况下撤销。</value>
+  </data>
+  <data name="Copy_DifferentFileExists" xml:space="preserve">
+    <value>{0} 处已存在不同的文件；未覆盖它。</value>
+  </data>
+  <data name="Copy_PermissionsWarning" xml:space="preserve">
+    <value>部分权限未能复制：</value>
+  </data>
+  <data name="Copy_VerifyFailed" xml:space="preserve">
+    <value>{0} 的副本与原文件不一致。</value>
+  </data>
+  <data name="Error_CannotRead" xml:space="preserve">
+    <value>无法读取 {0} 中的全部内容：{1}</value>
+  </data>
+  <data name="Error_DestInsideSource" xml:space="preserve">
+    <value>无法将 {0} 迁移到其自身内部。</value>
+  </data>
+  <data name="Error_InvalidName" xml:space="preserve">
+    <value>“{0}”不是有效的名称。请使用不含 \ / : * ? " &lt; &gt; | 的普通名称。</value>
+  </data>
+  <data name="Error_SourceIsLink" xml:space="preserve">
+    <value>{0} 已经是链接，无需迁移。</value>
+  </data>
+  <data name="Hist_AddedSinceQuestion" xml:space="preserve">
+    <value>{1} 在迁移后新增了 {0} 个文件：
+
+{2}
+
+是否也将它们移回 {3}？
+
+是：与其余文件一起移回
+否：保留在 {1} 中</value>
+  </data>
+  <data name="Hist_BackupNote" xml:space="preserve">
+    <value>（已合并；已备份 {0} 被替换的文件）</value>
+  </data>
+  <data name="Hist_DeleteBackups" xml:space="preserve">
+    <value>删除备份</value>
+  </data>
+  <data name="Hist_DeleteBackupsConfirm" xml:space="preserve">
+    <value>删除此次迁移在 {0} 中替换的文件的备份（{1}）？
+
+这会释放空间，但这些原始文件将无法再恢复。之后撤销此次迁移时，替换它们的文件会保留在原处。</value>
+  </data>
+  <data name="Hist_ErrLinkNotRestored" xml:space="preserve">
+    <value>无法恢复链接（{0}）；FreeMove 将在下次启动时完成。</value>
+  </data>
+  <data name="Journal_BackupKept" xml:space="preserve">
+    <value>部分被替换的文件未能恢复。其原始文件仍保存在 {0} 中。</value>
+  </data>
+  <data name="Journal_BackupNote" xml:space="preserve">
+    <value>{0} 个被替换的文件保存在 {1} 中，以便撤销此次迁移。你可以在“历史记录”中删除这些备份。</value>
+  </data>
+  <data name="Journal_CannotWrite" xml:space="preserve">
+    <value>无法写入安全记录，因此未迁移任何内容：{0}</value>
+  </data>
+  <data name="Rec_PartialCopyLeft" xml:space="preserve">
+    <value>无法删除 {0} 处的部分副本（{1}）；原文件未改动。</value>
+  </data>
+  <data name="Rec_SummaryTitle_Manual" xml:space="preserve">
+    <value>迁移</value>
+  </data>
+  <data name="Rec_SummaryWarnings" xml:space="preserve">
+    <value>已迁移，附注如下：</value>
+  </data>
+  <data name="Recovery_Failed" xml:space="preserve">
+    <value>{0}：暂时无法完成（{1}）。FreeMove 将在下次启动时重试。</value>
+  </data>
+  <data name="Recovery_Intro" xml:space="preserve">
+    <value>FreeMove 上次运行时有操作被中断，现已完成或回滚：</value>
+  </data>
+  <data name="Recovery_LinkFailed" xml:space="preserve">
+    <value>文件已安全保存在 {0} 中，但无法在 {1} 创建链接（{2}）。</value>
+  </data>
+  <data name="Recovery_MissingBoth" xml:space="preserve">
+    <value>找不到 {0} 和 {1}。</value>
+  </data>
+  <data name="Recovery_MoveFinished" xml:space="preserve">
+    <value>已完成将 {0} 迁移到 {1}。</value>
+  </data>
+  <data name="Recovery_MoveRolledBack" xml:space="preserve">
+    <value>已将 {0} 恢复原位；未进行迁移。</value>
+  </data>
+  <data name="Recovery_Title" xml:space="preserve">
+    <value>被中断的操作</value>
+  </data>
+  <data name="Recovery_UndoFinished" xml:space="preserve">
+    <value>已完成将 {0} 移回。</value>
+  </data>
+  <data name="Recovery_UndoRolledBack" xml:space="preserve">
+    <value>{0} 仍保持迁移状态；被中断的撤销已回滚。</value>
+  </data>
+  <data name="Hist_ErrTargetGone" xml:space="preserve">
+    <value>{0} 已不存在，因此未改动 {1} 处的文件。</value>
+  </data>
+  <data name="Rec_OnlyCopyKept" xml:space="preserve">
+    <value>文件现在只存在于 {0} 中；已保留在那里。</value>
   </data>
 </root>
 

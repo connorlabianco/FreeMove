@@ -123,18 +123,41 @@ namespace FreeMove
             }
         }
 
+        // Settings are read from disk once and kept in memory; every change is written straight
+        // away (atomically, so a crash never leaves a half-written file)
+        static Settings cached;
+        static readonly object cacheLock = new object();
+
         private static void Save(Settings set)
         {
-            XmlSerializer ser = new XmlSerializer(typeof(Settings));
-            Directory.CreateDirectory(Path.GetDirectoryName(GetSavePath()));
-            using (FileStream fs = File.OpenWrite(GetSavePath()))
+            lock (cacheLock)
             {
-                ser.Serialize(fs, set);
-                fs.SetLength(fs.Position);
+                cached = set;
+                string path = GetSavePath();
+                string temp = path + ".tmp";
+                XmlSerializer ser = new XmlSerializer(typeof(Settings));
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                using (FileStream fs = File.Create(temp))
+                {
+                    ser.Serialize(fs, set);
+                }
+                if (File.Exists(path))
+                    File.Replace(temp, path, null);
+                else
+                    File.Move(temp, path);
             }
         }
 
         private static Settings Load()
+        {
+            lock (cacheLock)
+            {
+                if (cached == null) cached = LoadFromDisk();
+                return cached;
+            }
+        }
+
+        private static Settings LoadFromDisk()
         {
             Settings LoadedSettings = null;
 

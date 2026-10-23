@@ -172,8 +172,9 @@ namespace FreeMove
                         uint count = Math.Min(numResults, (uint)maxResults);
                         for (uint i = 0; i < count; i++)
                         {
-                            StringBuilder sb = new StringBuilder(260);
-                            Everything_GetResultFullPathNameW_64(i, sb, 260);
+                            // Long enough for long paths (a 260-character buffer cut them off)
+                            StringBuilder sb = new StringBuilder(32768);
+                            Everything_GetResultFullPathNameW_64(i, sb, (uint)sb.Capacity);
                             results.Add(sb.ToString());
                         }
                     }
@@ -188,8 +189,9 @@ namespace FreeMove
                         uint count = Math.Min(numResults, (uint)maxResults);
                         for (uint i = 0; i < count; i++)
                         {
-                            StringBuilder sb = new StringBuilder(260);
-                            Everything_GetResultFullPathNameW_32(i, sb, 260);
+                            // Long enough for long paths (a 260-character buffer cut them off)
+                            StringBuilder sb = new StringBuilder(32768);
+                            Everything_GetResultFullPathNameW_32(i, sb, (uint)sb.Capacity);
                             results.Add(sb.ToString());
                         }
                     }

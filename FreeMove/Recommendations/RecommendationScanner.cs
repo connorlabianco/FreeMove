@@ -13,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 
 namespace FreeMove.Recommendations
 {
@@ -33,6 +34,9 @@ namespace FreeMove.Recommendations
         public long SizeBytes { get; set; }
         public RecommendationKind Kind { get; set; }
 
+        /// <summary>Programs running from inside this folder at scan time (close them before moving).</summary>
+        public List<string> RunningPrograms { get; set; } = new List<string>();
+
         /// <summary>
         /// Where the folder will go: the destination root plus the source path without its drive letter,
         /// e.g. C:\Program Files\Foo -> D:\FreeMove\Program Files\Foo. Mirroring the path keeps
@@ -48,8 +52,9 @@ namespace FreeMove.Recommendations
 
     /// <summary>
     /// Finds the largest folders on the Windows drive that FreeMove can move and link back.
-    /// Only well-known locations are scanned and system, driver and security folders are skipped,
-    /// so every suggestion is something that normally keeps working through a symbolic link.
+    /// Only well-known locations are scanned. System, driver, security and Windows-used Microsoft folders, and
+    /// folders that contain a service started with Windows, are skipped because they are always in
+    /// use; every suggestion is something that normally keeps working through a symbolic link.
     /// </summary>
     public static class RecommendationScanner
     {
@@ -63,7 +68,12 @@ namespace FreeMove.Recommendations
             "Microsoft Update Health Tools", "Reference Assemblies", "MSBuild", "dotnet",
             "Uninstall Information", "Microsoft.NET", "PackageManagement", "Microsoft Office",
             "Microsoft OneDrive", "NVIDIA Corporation", "Intel", "AMD", "Realtek", "Synaptics",
-            "Microsoft Analysis Services", "Microsoft SQL Server", "IIS", "IIS Express"
+            "Microsoft Analysis Services", "Microsoft SQL Server", "IIS", "IIS Express",
+            // Microsoft folders that Windows and its background tasks use nearly all the time.
+            // (Other Microsoft apps, like VS Code, are fine to move; a running one is detected
+            // by the in-use check and the service check instead.)
+            "Microsoft", "Microsoft Edge", "Microsoft Teams", "Microsoft Policy Platform",
+            "Microsoft Group Policy", "Microsoft Silverlight", "Microsoft Office 15", "Microsoft Office 16"
         };
 
         // Children of AppData\Local and AppData\Roaming that Windows itself depends on.
@@ -91,7 +101,10 @@ namespace FreeMove.Recommendations
         {
             return Task.Run(() =>
             {
-                List<MoveRecommendation> candidates = GetCandidates();
+                List<string> serviceFolders = GetAutoStartServiceFolders();
+                List<MoveRecommendation> candidates = GetCandidates()
+                    .Where(c => !serviceFolders.Any(sf => IO.ProcessFinder.IsUnder(sf, c.SourcePath)))
+                    .ToList();
                 var results = new ConcurrentBag<MoveRecommendation>();
                 var options = new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = 4 };
 
@@ -104,6 +117,12 @@ namespace FreeMove.Recommendations
                 });
 
                 token.ThrowIfCancellationRequested();
+
+                // Note programs currently running from each folder so the person can close them
+                Dictionary<int, string> running = IO.ProcessFinder.GetProcessImagePaths();
+                foreach (MoveRecommendation r in results)
+                    r.RunningPrograms = IO.ProcessFinder.RunningFrom(r.SourcePath, running);
+
                 return results.OrderByDescending(r => r.SizeBytes).ToList();
             }, token);
         }
@@ -201,6 +220,73 @@ namespace FreeMove.Recommendations
                 .ToList();
         }
 
+        /// <summary>
+        /// Folders holding the executable of a service or driver that starts with Windows
+        /// (boot, system or automatic start). Such a folder is in use whenever the PC is on.
+        /// </summary>
+        static List<string> GetAutoStartServiceFolders()
+        {
+            var folders = new List<string>();
+            try
+            {
+                using (RegistryKey services = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services"))
+                {
+                    if (services == null) return folders;
+                    foreach (string name in services.GetSubKeyNames())
+                    {
+                        try
+                        {
+                            using (RegistryKey svc = services.OpenSubKey(name))
+                            {
+                                if (svc == null) continue;
+                                object start = svc.GetValue("Start");
+                                if (!(start is int startType) || startType > 2) continue; // 0 boot, 1 system, 2 automatic
+                                string exe = ParseImagePath(svc.GetValue("ImagePath") as string);
+                                if (exe != null) folders.Add(Path.GetDirectoryName(exe));
+                            }
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch { }
+            return folders.Where(f => !string.IsNullOrEmpty(f)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        /// <summary>Turns a service ImagePath (quoted, with arguments, \SystemRoot\...) into a full path.</summary>
+        static string ParseImagePath(string imagePath)
+        {
+            if (string.IsNullOrWhiteSpace(imagePath)) return null;
+            string s = Environment.ExpandEnvironmentVariables(imagePath.Trim());
+
+            if (s.StartsWith("\""))
+            {
+                int end = s.IndexOf('"', 1);
+                s = end > 1 ? s.Substring(1, end - 1) : s.Trim('"');
+            }
+            else
+            {
+                // Unquoted: cut after the executable's extension, dropping any arguments
+                int cut = -1;
+                foreach (string ext in new[] { ".exe", ".sys", ".dll" })
+                {
+                    int i = s.IndexOf(ext, StringComparison.OrdinalIgnoreCase);
+                    if (i >= 0 && (cut < 0 || i + ext.Length < cut)) cut = i + ext.Length;
+                }
+                if (cut > 0) s = s.Substring(0, cut);
+            }
+
+            if (s.StartsWith(@"\??\")) s = s.Substring(4);
+            string windir = Environment.GetEnvironmentVariable("WINDIR") ?? @"C:\Windows";
+            if (s.StartsWith(@"\SystemRoot\", StringComparison.OrdinalIgnoreCase))
+                s = Path.Combine(windir, s.Substring(@"\SystemRoot\".Length));
+            else if (s.StartsWith(@"System32\", StringComparison.OrdinalIgnoreCase))
+                s = Path.Combine(windir, s);
+
+            try { return Path.IsPathRooted(s) ? Path.GetFullPath(s) : null; }
+            catch { return null; }
+        }
+
         static bool IsOnDrive(string path, string drive)
         {
             return string.Equals(Path.GetPathRoot(Path.GetFullPath(path)), drive, StringComparison.OrdinalIgnoreCase);
@@ -252,7 +338,7 @@ namespace FreeMove.Recommendations
                     {
                         try
                         {
-                            if ((sub.Attributes & FileAttributes.ReparsePoint) == 0)
+                            if ((sub.Attributes & FileAttributes.ReparsePoint) == 0 || !IO.NativeFs.IsLink(sub.FullName))
                                 pending.Push(sub.FullName);
                         }
                         catch { }

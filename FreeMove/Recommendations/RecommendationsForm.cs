@@ -94,12 +94,14 @@ namespace FreeMove.Recommendations
                 CheckBoxes = true,
                 FullRowSelect = true,
                 GridLines = true,
-                HideSelection = false
+                HideSelection = false,
+                ShowItemToolTips = true
             };
-            listView.Columns.Add(T("Rec_ColFolder", "Folder"), 330);
-            listView.Columns.Add(T("Rec_ColSize", "Size"), 80, HorizontalAlignment.Right);
-            listView.Columns.Add(T("Rec_ColType", "Type"), 90);
-            listView.Columns.Add(T("Rec_ColDest", "Will be moved to"), 330);
+            listView.Columns.Add(T("Rec_ColFolder", "Folder"), 300);
+            listView.Columns.Add(T("Rec_ColSize", "Size"), 75, HorizontalAlignment.Right);
+            listView.Columns.Add(T("Rec_ColType", "Type"), 85);
+            listView.Columns.Add(T("Rec_ColInUse", "In use by"), 120);
+            listView.Columns.Add(T("Rec_ColDest", "Will be moved to"), 300);
             listView.ItemChecked += (s, e) => UpdateStatus();
 
             // --- Bottom: status and actions ---
@@ -165,7 +167,10 @@ namespace FreeMove.Recommendations
                     var item = new ListViewItem(rec.SourcePath) { Tag = rec };
                     item.SubItems.Add(RecommendationScanner.FormatSize(rec.SizeBytes));
                     item.SubItems.Add(KindLabel(rec.Kind));
+                    item.SubItems.Add(string.Join(", ", rec.RunningPrograms));
                     item.SubItems.Add("");
+                    if (rec.RunningPrograms.Count > 0)
+                        item.ToolTipText = T("Rec_InUseTip", "This program is running now. Close it before moving, or FreeMove will offer to end it.");
                     listView.Items.Add(item);
                 }
                 listView.EndUpdate();
@@ -216,7 +221,7 @@ namespace FreeMove.Recommendations
             foreach (ListViewItem item in listView.Items)
             {
                 var rec = (MoveRecommendation)item.Tag;
-                item.SubItems[3].Text = IsDestinationValid(root, out _) ? rec.GetDestination(root) : "";
+                item.SubItems[4].Text = IsDestinationValid(root, out _) ? rec.GetDestination(root) : "";
             }
             UpdateStatus();
         }
@@ -311,15 +316,14 @@ namespace FreeMove.Recommendations
             List<MoveRecommendation> selected = SelectedRecommendations;
             if (selected.Count == 0) return;
 
-            string list = string.Join("\n", selected.Take(15).Select(r =>
+            string list = string.Join("\n", selected.Select(r =>
                 $"{r.SourcePath}  ({RecommendationScanner.FormatSize(r.SizeBytes)})"));
-            if (selected.Count > 15) list += "\n...";
 
             string message = string.Format(
                 T("Rec_ConfirmMessage", "Move {0} folder(s), {1} in total, to {2}?\n\n{3}\n\nClose the programs that use these folders before continuing. Each folder is moved and a link is left in its place."),
                 selected.Count, RecommendationScanner.FormatSize(selected.Sum(r => r.SizeBytes)), DestinationRoot, list);
 
-            if (MessageBox.Show(this, message, T("Rec_ConfirmTitle", "Confirm move"), MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
+            if (Dialogs.ScrollableMessageBox.Show(this, message, T("Rec_ConfirmTitle", "Confirm move"), MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
             {
                 DialogResult = DialogResult.OK;
                 Close();

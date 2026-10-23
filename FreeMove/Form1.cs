@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -29,6 +30,7 @@ namespace FreeMove
         bool safeMode = true;
         bool skipSecurityChecks = false;
         ToolStripMenuItem recommendedMovesToolStripMenuItem;
+        ToolStripMenuItem historyToolStripMenuItem;
 
         #region Initialization
         public Form1(bool skipSecurityChecks = false, string sourcePath = null, string destPath = null)
@@ -47,6 +49,13 @@ namespace FreeMove
             recommendedMovesToolStripMenuItem = new ToolStripMenuItem("Recommended moves");
             recommendedMovesToolStripMenuItem.Click += RecommendedMovesToolStripMenuItem_Click;
             menuStrip1.Items.Insert(0, recommendedMovesToolStripMenuItem);
+
+            // Finish or roll back anything interrupted last time, once the window is up
+            Shown += async (s, e) => await RecoverInterruptedOperations();
+
+            historyToolStripMenuItem = new ToolStripMenuItem("History");
+            historyToolStripMenuItem.Click += HistoryToolStripMenuItem_Click;
+            menuStrip1.Items.Insert(1, historyToolStripMenuItem);
 
             if (!string.IsNullOrEmpty(sourcePath))
                 textBox_From.Text = sourcePath;
@@ -79,10 +88,13 @@ namespace FreeMove
             {
                 //Update the menu item accordingly
                 checkOnProgramStartToolStripMenuItem.Checked = true;
-                //Start a background update task
-                Updater updater = await Task<bool>.Run(() => Updater.SilentCheck());
+                //Start a background update check (never throws); the window is created here, on the UI thread
+                string newVersion = await Updater.SilentCheckAsync();
                 //If there is an update show the update dialog
-                if (updater != null) updater.ShowDialog();
+                if (newVersion != null && !IsDisposed)
+                {
+                    using (var updater = new Updater(true, newVersion)) updater.ShowDialog(this);
+                }
             }
 
             if (Settings.EnableContextMenu)
@@ -159,6 +171,7 @@ namespace FreeMove
             lunguToolStripMenuItem.Text = Properties.Resources.ResourceManager.GetString("Menu_Language");
 
             recommendedMovesToolStripMenuItem.Text = Properties.Resources.ResourceManager.GetString("Menu_RecommendedMoves") ?? "Recommended moves";
+            historyToolStripMenuItem.Text = Properties.Resources.ResourceManager.GetString("Menu_History") ?? "History";
 
             workModeToolStripMenuItem.Text = Properties.Resources.ResourceManager.GetString("Menu_WorkingMode") ?? "Working Mode";
             directoryOnlyToolStripMenuItem.Text = Properties.Resources.ResourceManager.GetString("Menu_DirectoryOnly") ?? "Directory Only";
@@ -201,122 +214,49 @@ namespace FreeMove
             directoryBrowser1.ApplyLanguage();
         }
 
+        /// <summary>
+        /// "Restore symbolic link" from the folder browser. Moves (or copies) the files back and
+        /// removes the link, through the same path as undoing from History: a write-ahead record,
+        /// in-use handling, verified copies, merges undone precisely and nothing deleted until the
+        /// files are safely back.
+        /// </summary>
         private async Task RestoreLink(string symlinkPath, string targetPath, bool move)
         {
-            Enabled = false;
-            try
+            if (!Directory.Exists(targetPath) && !File.Exists(targetPath))
             {
-                // 先验证目标文件或文件夹是否存在
-                if (!Directory.Exists(targetPath) && !File.Exists(targetPath))
-                {
-                    MessageBox.Show(Properties.Resources.ResourceManager.GetString("Restore_InvalidTarget"),
-                        Properties.Resources.ResourceManager.GetString("ErrorTitle"),
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                // 准备一个临时路径来存放符号链接（以便恢复）
-                string tempSymlinkPath = symlinkPath + ".bak_" + DateTime.Now.Ticks;
-
-                bool isFile = File.Exists(targetPath);
-                try
-                {
-                    // 1. 将符号链接重命名（本质是移动）
-                    if (isFile)
-                        File.Move(symlinkPath, tempSymlinkPath);
-                    else
-                        Directory.Move(symlinkPath, tempSymlinkPath);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(string.Format(System.Globalization.CultureInfo.CurrentUICulture, Properties.Resources.ResourceManager.GetString("Restore_PrepareFailed"), ex.Message),
-                        Properties.Resources.ResourceManager.GetString("ErrorTitle"),
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                bool success = false;
-                try
-                {
-                    if (move)
-                    {
-                        // 移动模式：直接使用现有的 BeginMove
-                        await BeginMove(targetPath, symlinkPath);
-                    }
-                    else
-                    {
-                        // 复制模式
-                        using (ProgressDialog progressDialog = new ProgressDialog(Properties.Resources.ResourceManager.GetString("MovingFilesTitle")))
-                        {
-                            IO.CopyOperation copyOp = new IO.CopyOperation(targetPath, symlinkPath);
-                            copyOp.ProgressChanged += (sender, e) => progressDialog.UpdateProgress(e);
-                            copyOp.End += (sender, e) => progressDialog.Invoke((Action)progressDialog.Close);
-
-                            Task task = copyOp.Run();
-                            progressDialog.ShowDialog(this);
-                            await task;
-                        }
-                    }
-                    success = true;
-                }
-                catch (Exception ex)
-                {
-                    // 如果失败，尝试恢复符号链接
-                    try
-                    {
-                        if (isFile)
-                        {
-                            if (File.Exists(symlinkPath)) File.Delete(symlinkPath);
-                            File.Move(tempSymlinkPath, symlinkPath);
-                        }
-                        else
-                        {
-                            if (Directory.Exists(symlinkPath)) Directory.Delete(symlinkPath, true);
-                            Directory.Move(tempSymlinkPath, symlinkPath);
-                        }
-                    }
-                    catch { /* 忽略恢复失败 */ }
-
-                    MessageBox.Show(string.Format(System.Globalization.CultureInfo.CurrentUICulture, Properties.Resources.ResourceManager.GetString("Restore_Failed"), ex.Message),
-                        Properties.Resources.ResourceManager.GetString("ErrorTitle"),
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-
-                if (success)
-                {
-                    // 成功后删除备份的符号链接
-                    try
-                    {
-                        if (isFile && File.Exists(tempSymlinkPath)) File.Delete(tempSymlinkPath);
-                        else if (!isFile && Directory.Exists(tempSymlinkPath)) Directory.Delete(tempSymlinkPath);
-                    }
-                    catch { /* 忽略删除备份失败 */ }
-
-                    MessageBox.Show(this, Properties.Resources.ResourceManager.GetString("DoneMessage"));
-                }
+                MessageBox.Show(Properties.Resources.ResourceManager.GetString("Restore_InvalidTarget"),
+                    Properties.Resources.ResourceManager.GetString("ErrorTitle"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
-            finally
-            {
-                Enabled = true;
-                // 刷新列表
-                directoryBrowser1.RefreshBrowser();
-            }
+
+            // A move FreeMove recorded: use its entry (it may be a merge, which must only bring
+            // back the files it added). Otherwise describe the link as a one-off entry.
+            History.MoveEntry entry = History.MoveHistory.FindMovedEntryByLink(symlinkPath)
+                ?? new History.MoveEntry
+                {
+                    LinkPath = symlinkPath.TrimEnd('\\'),
+                    TargetPath = targetPath.TrimEnd('\\'),
+                    IsFile = File.Exists(targetPath)
+                };
+
+            await UndoEntries(new List<History.MoveEntry> { entry }, keepMovedCopy: !move);
         }
 
         /// <summary>
         /// 执行移动前预检查，并在失败原因仅为只读属性时提供自动修复入口。
         /// </summary>
-        private bool PreliminaryCheck(string source, string destination)
+        private bool PreliminaryCheck(string source, string destination, bool allowExistingDestination = false)
         {
             try
             {
-                IOHelper.CheckDirectories(source, destination, safeMode, chkBox_createDest.Checked, skipAllChecks: skipSecurityChecks);
+                IOHelper.CheckDirectories(source, destination, safeMode, chkBox_createDest.Checked, skipAllChecks: skipSecurityChecks, allowExistingDestination: allowExistingDestination);
                 return true;
             }
             catch (AggregateException ae) when (IOHelper.TryGetReadOnlyPrecheckFailures(ae, out List<IOHelper.ReadOnlyPrecheckException> readOnlyFailures))
             {
                 // If every failure comes from read-only attributes, offer an in-place repair instead of failing immediately.
-                DialogResult result = MessageBox.Show(
+                DialogResult result = Dialogs.ScrollableMessageBox.Show(
                     this,
                     string.Format(Properties.Resources.ResourceManager.GetString("ReadOnlyPrecheckConfirmMessage"), string.Join("\n", readOnlyFailures.ConvertAll(item => item.FilePath))),
                     Properties.Resources.ResourceManager.GetString("ReadOnlyPrecheckConfirmTitle"),
@@ -347,7 +287,7 @@ namespace FreeMove
                 try
                 {
                     // Re-run with Full so the move only continues after all files pass the stricter access check.
-                    IOHelper.CheckDirectories(source, destination, safeMode, chkBox_createDest.Checked, Settings.PermissionCheckLevel.Full, skipAllChecks: skipSecurityChecks);
+                    IOHelper.CheckDirectories(source, destination, safeMode, chkBox_createDest.Checked, Settings.PermissionCheckLevel.Full, skipAllChecks: skipSecurityChecks, allowExistingDestination: allowExistingDestination);
                     return true;
                 }
                 catch (Exception ex)
@@ -372,7 +312,7 @@ namespace FreeMove
                 {
                     msg += innerException.Message + "\n";
                 }
-                MessageBox.Show(msg, Properties.Resources.ResourceManager.GetString("ErrorTitle"));
+                Dialogs.ScrollableMessageBox.Show(this, msg, Properties.Resources.ResourceManager.GetString("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -382,134 +322,113 @@ namespace FreeMove
         private async void Begin()
         {
             Enabled = false;
-            string source = textBox_From.Text.TrimEnd('\\');
-            string destination = Path.Combine(textBox_To.Text.Length > 3 ? textBox_To.Text.TrimEnd('\\') : textBox_To.Text, Path.GetFileName(source));
-
-            if (PreliminaryCheck(source, destination))
+            try
             {
-                try
+                string source = textBox_From.Text.TrimEnd('\\');
+                string destination = Path.Combine(textBox_To.Text.Length > 3 ? textBox_To.Text.TrimEnd('\\') : textBox_To.Text, Path.GetFileName(source));
+
+                // The destination already exists: never overwrite silently. Ask, and default to not moving.
+                bool overwrite = false;
+                if (Directory.Exists(destination) || File.Exists(destination))
                 {
-                    await BeginMove(source, destination);
-                    Symlink(destination, source);
+                    string question = string.Format(
+                        Properties.Resources.ResourceManager.GetString("Conflict_ManualQuestion")
+                            ?? "{0} already exists.\n\nOverwrite it? Files with the same name will be replaced by the ones being moved; other files already there are kept.\n\nYes: overwrite and move\nNo: don't move",
+                        destination);
+                    string title = Properties.Resources.ResourceManager.GetString("Conflict_Title") ?? "Already exists at destination";
+                    if (MessageBox.Show(this, question, title, MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+                        return;
+                    overwrite = true;
+                }
 
-                    if (chkBox_originalHidden.Checked)
-                    {
-                        DirectoryInfo olddir = new DirectoryInfo(source);
-                        var attrib = File.GetAttributes(source);
-                        olddir.Attributes = attrib | FileAttributes.Hidden;
-                    }
+                // Checks with the interactive fix for read-only files; the move then runs through the
+                // same path as Recommended moves: journal, verified copy, link check, rollback
+                if (!PreliminaryCheck(source, destination, allowExistingDestination: overwrite))
+                    return;
 
-                    // 刷新目录浏览器以显示最新状态（如符号链接）
-                    directoryBrowser1.RefreshBrowser();
+                var job = new MoveJob { Source = source, Destination = destination, Overwrite = overwrite, ChecksDone = true };
+                MoveBatchResult result = await RunMoveJobs(new List<MoveJob> { job }, recommendedBatch: false);
 
+                if (result.Moved.Count == 1 && result.Warnings.Count == 0)
                     MessageBox.Show(this, Properties.Resources.ResourceManager.GetString("DoneMessage"));
-                }
-                catch (IO.MoveOperation.CopyFailedException ex)
-                {
-                    string question = string.Format(Properties.Resources.ResourceManager.GetString("UndoChangesDetailsQuestion"), ex.InnerException.Message);
-                    switch (MessageBox.Show(this, question, ex.Message, MessageBoxButtons.YesNo, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1))
-                    {
-                        case DialogResult.Yes:
-                            try
-                            {
-                                Directory.Delete(destination, true);
-                            }
-                            catch (Exception ie)
-                            {
-                                MessageBox.Show(this, ie.Message, Properties.Resources.ResourceManager.GetString("RemoveCopiedContentsFailed"));
-                            }
-                            break;
-                        case DialogResult.No:
-                            // MessageBox.Show(this, ie.Message, "Could not remove copied contents. Try removing manually");
-                            break;
-                    }
-                }
-                catch (IO.MoveOperation.DeleteFailedException ex)
-                {
-                    string question = string.Format(Properties.Resources.ResourceManager.GetString("UndoChangesDetailsQuestion"), ex.InnerException.Message);
-                    switch (MessageBox.Show(this, question, ex.Message, MessageBoxButtons.YesNo, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1))
-                    {
-                        case DialogResult.Yes:
-                            try
-                            {
-                                await BeginMove(destination, source);
-                            }
-                            catch (Exception ie)
-                            {
-                                MessageBox.Show(this, ie.Message, Properties.Resources.ResourceManager.GetString("MoveBackFailedMessage"));
-                            }
-                            break;
-                        case DialogResult.No:
-                            // MessageBox.Show(this, ie.Message, "Could not remove copied contents. Try removing manually");
-                            break;
-                    }
-                }
-                catch (IO.MoveOperation.MoveFailedException ex)
-                {
-                    string details = string.Format(Properties.Resources.ResourceManager.GetString("MoveFailedDetailsFormat"), ex.InnerException.Message);
-                    MessageBox.Show(this, details, ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                catch (OperationCanceledException)
-                {
-                    string question = Properties.Resources.ResourceManager.GetString("UndoChangesSimpleQuestion");
-                    string title = Properties.Resources.ResourceManager.GetString("CancelledTitle");
-                    switch (MessageBox.Show(this, question, title, MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1))
-                    {
-                        case DialogResult.Yes:
-                            try
-                            {
-                                if (Directory.Exists(destination))
-                                    Directory.Delete(destination, true);
-                            }
-                            catch (Exception ie)
-                            {
-                                MessageBox.Show(this, ie.Message, Properties.Resources.ResourceManager.GetString("RemoveCopiedContentsFailed"));
-                            }
-                            break;
-                    }
-                }
+                else
+                    ShowBatchSummary(result, R("Rec_SummaryTitle_Manual", "Move"));
             }
-            Enabled = true;
+            finally
+            {
+                Enabled = true;
+            }
         }
 
-        private async Task BeginMove(string source, string destination, bool? createDestination = null)
+        private async Task BeginMove(string source, string destination, bool? createDestination = null, BatchQueue queue = null,
+            bool overwrite = false, IO.MoveJournal journal = null, Action<IO.MoveOperation> created = null, bool keepExisting = false)
         {
-            //Move files
+            IO.MoveOperation moveOp = IOHelper.MoveDir(source, destination, createDestination ?? chkBox_createDest.Checked, overwrite, journal, keepExisting);
+            // Lets the caller reach the operation (journal, created folders, warnings) even if the move then fails
+            created?.Invoke(moveOp);
+            await RunOperation(moveOp, queue);
+        }
+
+        /// <summary>
+        /// Runs a file operation with the progress window: Cancel, and in a queue of several
+        /// items also "Item i of j", Skip and Skip remaining. The window is closed from a
+        /// continuation of the operation's task, which runs inside the window's message loop, so it
+        /// closes reliably even when the operation finishes or fails before the window is shown.
+        /// </summary>
+        private async Task RunOperation(IO.IOOperation operation, BatchQueue queue = null)
+        {
             using (ProgressDialog progressDialog = new ProgressDialog(Properties.Resources.ResourceManager.GetString("MovingFilesTitle")))
             {
-                IO.MoveOperation moveOp = IOHelper.MoveDir(source, destination, createDestination ?? chkBox_createDest.Checked);
-
-                moveOp.ProgressChanged += (sender, e) => progressDialog.UpdateProgress(e);
-                moveOp.End += (sender, e) => progressDialog.Invoke((Action)progressDialog.Close);
+                Task task = null;
+                operation.ProgressChanged += (sender, e) => progressDialog.UpdateProgress(e);
 
                 progressDialog.CancelRequested += (sender, e) =>
                 {
                     string message = Properties.Resources.ResourceManager.GetString("CancelConfirmationMessage");
                     string title = Properties.Resources.ResourceManager.GetString("CancelConfirmationTitle");
-                    if (DialogResult.Yes == MessageBox.Show(this, message, title, MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2))
+                    if (DialogResult.Yes == MessageBox.Show(progressDialog, message, title, MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2)
+                        && task != null && !task.IsCompleted)
                     {
-                        moveOp.Cancel();
-                        progressDialog.BeginInvoke(new Action(() => progressDialog.Cancellable = false));
+                        operation.Cancel();
+                        progressDialog.Cancellable = false;
                     }
                 };
 
-                Task task = moveOp.Run();
+                if (queue != null && queue.Count > 1)
+                {
+                    progressDialog.EnableQueueMode(queue);
 
-                progressDialog.ShowDialog(this);
-                try
-                {
-                    await task;
+                    // Skip: stop this item now; the caller puts it back as it was and goes on.
+                    // If the item finished while the question was open, there is nothing to skip.
+                    progressDialog.SkipRequested += (sender, e) =>
+                    {
+                        string message = Properties.Resources.ResourceManager.GetString("Queue_SkipConfirm") ?? "Skip this item? It will be put back exactly as it was, and the next item will start.";
+                        string title = Properties.Resources.ResourceManager.GetString("Queue_Skip") ?? "Skip";
+                        if (DialogResult.Yes == MessageBox.Show(progressDialog, message, title, MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2)
+                            && task != null && !task.IsCompleted && progressDialog.Cancellable)
+                        {
+                            queue.SkipCurrent = true;
+                            operation.Cancel();
+                            progressDialog.Cancellable = false;
+                        }
+                    };
+
+                    // Skip remaining: let this item finish, then don't start the rest
+                    progressDialog.SkipRemainingRequested += (sender, e) => queue.SkipRemaining = true;
                 }
-                finally
+
+                task = operation.Run();
+                Task closer = task.ContinueWith(_ =>
                 {
-                    progressDialog.Close();
-                }
+                    if (!progressDialog.IsDisposed) progressDialog.Close();
+                }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.FromCurrentSynchronizationContext());
+
+                if (!task.IsCompleted)
+                    progressDialog.ShowDialog(this);
+
+                await closer;
+                await task;
             }
-        }
-
-        private void Symlink(string destination, string link)
-        {
-            IOHelper.MakeLink(destination, link);
         }
 
         //Configure tooltips
@@ -683,7 +602,7 @@ namespace FreeMove
         {
             string help = Properties.Resources.ResourceManager.GetString("HelpContent");
             string title = Properties.Resources.ResourceManager.GetString("HelpButtonText");
-            MessageBox.Show(this, help, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Dialogs.ScrollableMessageBox.Show(this, help, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void contextMenuToolStripMenuItem_Click(object sender, EventArgs e)

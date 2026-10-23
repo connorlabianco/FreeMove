@@ -33,11 +33,33 @@ namespace FreeMove
         string NewVersion = "";
         readonly bool Silent;
 
-        public Updater(bool Silent)
+        const string LatestReleaseApi = "https://api.github.com/repos/fengyec2/FreeMove/releases/latest";
+        const string LatestReleasePage = "https://github.com/fengyec2/FreeMove/releases/latest";
+
+        // One client for the app's lifetime, with a timeout so a slow network can't hang the check
+        static readonly HttpClient Client = CreateClient();
+
+        static HttpClient CreateClient()
+        {
+#if NETFRAMEWORK
+            // Allow TLS 1.2 (and 1.3 where Windows supports it) without forcing a version the OS
+            // may not have: forcing TLS 1.3 made every check fail on older Windows
+            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12 | (SecurityProtocolType)12288;
+#endif
+            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue(Properties.Resources.UserAgent, GetCurrentVersion()));
+            return client;
+        }
+
+        static string GetCurrentVersion() =>
+            System.Diagnostics.FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
+
+        /// <summary>Shows the update window. Create it on the UI thread.</summary>
+        public Updater(bool Silent, string newVersion = null)
         {
             this.Silent = Silent;
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            this.CurrentVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion;
+            this.CurrentVersion = GetCurrentVersion();
+            if (newVersion != null) NewVersion = newVersion;
             InitializeComponent();
             Text = Properties.Resources.ResourceManager.GetString("Updater_FormTitle");
             label1.Text = Properties.Resources.ResourceManager.GetString("Updater_Checking");
@@ -57,29 +79,31 @@ namespace FreeMove
         {
             try
             {
-                if (await CheckGitHub())
+                string latest = await GetLatestVersionAsync();
+                if (IsNewer(latest, CurrentVersion))
                 {
+                    NewVersion = latest;
                     ShowUpdate();
                 }
                 else
                 {
-                    label1.Text = Properties.Resources.ResourceManager.GetString("Updater_NoUpdates");
-                    progressBar1.Dispose();
-                    button_Ok.Enabled = true;
-                    button_Ok.Click += delegate { Dispose(); };
+                    ShowMessage(Properties.Resources.ResourceManager.GetString("Updater_NoUpdates"));
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                if (ex.Message == Properties.Resources.GitHubErrorMessage || ex is WebException)
-                {
-                    label1.Text = Properties.Resources.GitHubErrorMessage;
-                    progressBar1.Dispose();
-                    button_Ok.Enabled = true;
-                    button_Ok.Click += delegate { Dispose(); };
-                }
-                else throw;
+                // Offline, timed out, GitHub unreachable or an unexpected reply: say so, never crash
+                ShowMessage(Properties.Resources.GitHubErrorMessage);
             }
+        }
+
+        void ShowMessage(string text)
+        {
+            if (IsDisposed) return;
+            label1.Text = text;
+            progressBar1.Dispose();
+            button_Ok.Enabled = true;
+            button_Ok.Click += delegate { Dispose(); };
         }
 
         private void ShowUpdate()
@@ -91,42 +115,49 @@ namespace FreeMove
             button_Cancel.Click += delegate { Dispose(); };
 
             button_Ok.Enabled = true;
-            button_Ok.Click += delegate { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://github.com/fengyec2/FreeMove/releases/latest") { UseShellExecute = true }); Dispose(); };
+            button_Ok.Click += delegate { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(LatestReleasePage) { UseShellExecute = true }); Dispose(); };
         }
 
-        public async Task<bool> CheckGitHub()
+        /// <summary>The latest released version on GitHub. Throws if it can't be determined.</summary>
+        public static async Task<string> GetLatestVersionAsync()
         {
-            System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls13;
-            Stream ResponseStream = await GetGitHubStreamAsync();
-
-            TextReader Reader = new StreamReader(ResponseStream);
-            const string pattern = "\"tag_name\":\"v?([0-9.]+)\"";
-            NewVersion = Regex.Match(Reader.ReadToEnd(), pattern, RegexOptions.Multiline).Groups[1].Value;
-
-            if (NewVersion == "") throw new Exception(Properties.Resources.GitHubErrorMessage);
-            return CurrentVersion != NewVersion;
+            using (Stream response = await Client.GetStreamAsync(LatestReleaseApi))
+            using (var reader = new StreamReader(response))
+            {
+                const string pattern = "\"tag_name\"\\s*:\\s*\"v?([0-9.]+)\"";
+                string version = Regex.Match(await reader.ReadToEndAsync(), pattern).Groups[1].Value;
+                if (version == "") throw new Exception(Properties.Resources.GitHubErrorMessage);
+                return version;
+            }
         }
 
-        private async Task<Stream> GetGitHubStreamAsync()
+        /// <summary>True when <paramref name="latest"/> is a higher version than <paramref name="current"/>.</summary>
+        public static bool IsNewer(string latest, string current)
         {
-            using var Client = new HttpClient();
-            Client.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue(Properties.Resources.UserAgent, CurrentVersion));
-            var Resp = await Client.GetStreamAsync("https://api.github.com/repos/fengyec2/FreeMove/releases/latest");
-            return Resp;
+            if (Version.TryParse(Pad(latest), out Version l) && Version.TryParse(Pad(current), out Version c))
+                return l > c;
+            return false;   // can't tell: don't offer an update that might be older
         }
 
-        public static async Task<Updater> SilentCheck()
+        static string Pad(string v)
         {
-            Updater updater = new Updater(true);
+            if (string.IsNullOrEmpty(v)) return v;
+            int parts = v.Split('.').Length;
+            return parts == 1 ? v + ".0" : v;
+        }
+
+        /// <summary>
+        /// Background check for a newer version. Returns it, or null when there is none or the check
+        /// failed for any reason. Doesn't create any window, so it can run on any thread.
+        /// </summary>
+        public static async Task<string> SilentCheckAsync()
+        {
             try
             {
-                if (await updater.CheckGitHub())
-                {
-                    return updater;
-                }
-                else return null;
+                string latest = await GetLatestVersionAsync().ConfigureAwait(false);
+                return IsNewer(latest, GetCurrentVersion()) ? latest : null;
             }
-            catch (WebException)
+            catch
             {
                 return null;
             }
