@@ -246,12 +246,19 @@ namespace FreeMove
         /// <summary>
         /// 执行移动前预检查，并在失败原因仅为只读属性时提供自动修复入口。
         /// </summary>
-        private bool PreliminaryCheck(string source, string destination, bool allowExistingDestination = false)
+        private async Task<bool> PreliminaryCheck(string source, string destination, bool allowExistingDestination = false)
         {
+            // The checks read every file of the folder, which can take minutes on a big folder:
+            // run them in the background so the window keeps responding
+            bool safe = safeMode, createDest = chkBox_createDest.Checked, skipChecks = skipSecurityChecks;
             try
             {
-                IOHelper.CheckDirectories(source, destination, safeMode, chkBox_createDest.Checked, skipAllChecks: skipSecurityChecks, allowExistingDestination: allowExistingDestination);
+                await RunCheck(() => IOHelper.CheckDirectories(source, destination, safe, createDest, skipAllChecks: skipChecks, allowExistingDestination: allowExistingDestination));
                 return true;
+            }
+            catch (OperationCanceledException)
+            {
+                return false;   // cancelled from the progress window: nothing was changed
             }
             catch (AggregateException ae) when (IOHelper.TryGetReadOnlyPrecheckFailures(ae, out List<IOHelper.ReadOnlyPrecheckException> readOnlyFailures))
             {
@@ -271,7 +278,7 @@ namespace FreeMove
 
                 try
                 {
-                    IOHelper.ClearReadOnlyAttributes(source);
+                    await Task.Run(() => IOHelper.ClearReadOnlyAttributes(source));
                 }
                 catch (Exception ex)
                 {
@@ -287,8 +294,12 @@ namespace FreeMove
                 try
                 {
                     // Re-run with Full so the move only continues after all files pass the stricter access check.
-                    IOHelper.CheckDirectories(source, destination, safeMode, chkBox_createDest.Checked, Settings.PermissionCheckLevel.Full, skipAllChecks: skipSecurityChecks, allowExistingDestination: allowExistingDestination);
+                    await RunCheck(() => IOHelper.CheckDirectories(source, destination, safe, createDest, Settings.PermissionCheckLevel.Full, skipAllChecks: skipChecks, allowExistingDestination: allowExistingDestination));
                     return true;
+                }
+                catch (OperationCanceledException)
+                {
+                    return false;
                 }
                 catch (Exception ex)
                 {
@@ -321,7 +332,8 @@ namespace FreeMove
 
         private async void Begin()
         {
-            Enabled = false;
+            if (IsBusy) return;
+            SetBusy(true);
             try
             {
                 string source = textBox_From.Text.TrimEnd('\\');
@@ -343,12 +355,14 @@ namespace FreeMove
 
                 // Checks with the interactive fix for read-only files; the move then runs through the
                 // same path as Recommended moves: journal, verified copy, link check, rollback
-                if (!PreliminaryCheck(source, destination, allowExistingDestination: overwrite))
+                if (!await PreliminaryCheck(source, destination, allowExistingDestination: overwrite))
                     return;
+                if (closeWhenIdle) return;   // the window was closed during the checks: don't start
 
                 var job = new MoveJob { Source = source, Destination = destination, Overwrite = overwrite, ChecksDone = true };
                 MoveBatchResult result = await RunMoveJobs(new List<MoveJob> { job }, recommendedBatch: false);
 
+                if (closeWhenIdle) return;   // closing: the result is in History
                 if (result.Moved.Count == 1 && result.Warnings.Count == 0)
                     MessageBox.Show(this, Properties.Resources.ResourceManager.GetString("DoneMessage"));
                 else
@@ -356,7 +370,7 @@ namespace FreeMove
             }
             finally
             {
-                Enabled = true;
+                SetBusy(false);
             }
         }
 
@@ -375,11 +389,13 @@ namespace FreeMove
         /// continuation of the operation's task, which runs inside the window's message loop, so it
         /// closes reliably even when the operation finishes or fails before the window is shown.
         /// </summary>
-        private async Task RunOperation(IO.IOOperation operation, BatchQueue queue = null)
+        private async Task RunOperation(IO.IOOperation operation, BatchQueue queue = null, string indeterminateMessage = null)
         {
             using (ProgressDialog progressDialog = new ProgressDialog(Properties.Resources.ResourceManager.GetString("MovingFilesTitle")))
             {
                 Task task = null;
+                PrepareDialog(progressDialog);
+                if (indeterminateMessage != null) progressDialog.ShowIndeterminate(indeterminateMessage);
                 operation.ProgressChanged += (sender, e) => progressDialog.UpdateProgress(e);
 
                 progressDialog.CancelRequested += (sender, e) =>
