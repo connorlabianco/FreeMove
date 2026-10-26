@@ -138,6 +138,7 @@ namespace FreeMove
                 summary.Append(R("Hist_SummaryCancelled", "Undo was cancelled; remaining items were not touched."));
             }
 
+            BringMainWindowForward();
             ScrollableMessageBox.Show(this, summary.ToString(), R("Hist_Title", "Move history"),
                 MessageBoxButtons.OK, failed.Count > 0 || warnings.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
         }
@@ -170,6 +171,14 @@ namespace FreeMove
                 }
 
                 UndoResult result = await UndoOne(entry, queue, batchId, keepMovedCopy);
+                if (result.Cancelled)
+                    Log.Info($"Undo {(queue.SkipCurrent ? "skipped" : "cancelled")}: {entry.LinkPath}" + (result.Error != null ? ": " + result.Error : ""));
+                else if (result.Error != null)
+                    Log.Error($"Undo failed: {entry.TargetPath} -> {entry.LinkPath}: {result.Error}");
+                else
+                    Log.Info($"Moved back {entry.TargetPath} -> {entry.LinkPath}" + (keepMovedCopy ? " (kept the moved copy)" : "") +
+                             (result.Warning != null ? "; note: " + result.Warning : ""));
+
                 if (result.Cancelled && queue.SkipCurrent)
                 {
                     skipped.Add(entry.LinkPath + (result.Error != null ? "\n    " + result.Error : ""));

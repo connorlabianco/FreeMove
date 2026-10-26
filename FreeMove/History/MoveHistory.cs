@@ -67,6 +67,23 @@ namespace FreeMove.History
         public List<MoveEntry> Entries { get; set; } = new List<MoveEntry>();
     }
 
+    /// <summary>The result of a health check on one moved item.</summary>
+    public enum MoveHealth
+    {
+        /// <summary>The link is in place and the moved files are there.</summary>
+        Healthy,
+        /// <summary>The link is there but the moved files are not: their drive is missing or they were deleted.</summary>
+        TargetMissing,
+        /// <summary>A real folder or file is at the original location again (often after a reinstall).</summary>
+        Replaced,
+        /// <summary>Nothing is at the original location, but the moved files are there: the link can be recreated.</summary>
+        LinkMissing,
+        /// <summary>The link points somewhere else.</summary>
+        PointsElsewhere,
+        /// <summary>Neither the link nor the moved files exist.</summary>
+        Gone
+    }
+
     public class MoveHistoryData
     {
         public List<MoveBatch> Batches { get; set; } = new List<MoveBatch>();
@@ -113,21 +130,39 @@ namespace FreeMove.History
         static MoveHistoryData LoadUnlocked()
         {
             string path = GetSavePath();
-            if (!File.Exists(path)) return new MoveHistoryData();
+            if (!File.Exists(path))
+            {
+                // The log was deleted: fall back to a backup if there is one
+                return TryRead(path + ".bak") ?? TryRead(DailyBackupPath) ?? new MoveHistoryData();
+            }
+
+            MoveHistoryData data = TryRead(path);
+            if (data != null) return data;
+
+            // Keep a copy of an unreadable log rather than losing it: a new name each time,
+            // so an older copy is never overwritten. Then use the newest readable backup.
+            try { File.Copy(path, path + "." + DateTime.Now.ToString("yyyyMMddHHmmss") + ".corrupt", false); } catch { }
+            Log.Warn("History.xml could not be read; using a backup");
+            return TryRead(path + ".bak") ?? TryRead(DailyBackupPath) ?? new MoveHistoryData();
+        }
+
+        /// <summary>A copy of the log made at most once a day, in addition to History.xml.bak (the previous version).</summary>
+        static string DailyBackupPath => GetSavePath() + ".daily";
+
+        static MoveHistoryData TryRead(string path)
+        {
             try
             {
+                if (!File.Exists(path)) return null;
                 using (FileStream fs = File.OpenRead(path))
                 {
                     var ser = new XmlSerializer(typeof(MoveHistoryData));
-                    return ser.Deserialize(fs) as MoveHistoryData ?? new MoveHistoryData();
+                    return ser.Deserialize(fs) as MoveHistoryData;
                 }
             }
             catch
             {
-                // Keep a copy of an unreadable log rather than losing it: a new name each time,
-                // so an older copy is never overwritten
-                try { File.Copy(path, path + "." + DateTime.Now.ToString("yyyyMMddHHmmss") + ".corrupt", false); } catch { }
-                return new MoveHistoryData();
+                return null;
             }
         }
 
@@ -146,7 +181,16 @@ namespace FreeMove.History
                 fs.Flush(true);
             }
             if (File.Exists(path))
+            {
+                // Once a day, also keep a copy of the current log before replacing it
+                try
+                {
+                    if (!File.Exists(DailyBackupPath) || File.GetLastWriteTime(DailyBackupPath) < DateTime.Now.AddDays(-1))
+                        File.Copy(path, DailyBackupPath, true);
+                }
+                catch { }
                 File.Replace(temp, path, path + ".bak");
+            }
             else
                 File.Move(temp, path);
         }
@@ -243,6 +287,111 @@ namespace FreeMove.History
             {
                 return MoveEntryLiveState.Changed;
             }
+        }
+
+        /// <summary>Checks a moved item on disk in more detail than <see cref="GetLiveState"/>.</summary>
+        public static MoveHealth Diagnose(MoveEntry entry)
+        {
+            try
+            {
+                bool linkPresent = entry.IsFile ? File.Exists(entry.LinkPath) || IO.NativeFs.IsLink(entry.LinkPath)
+                                                : Directory.Exists(entry.LinkPath) || IO.NativeFs.IsLink(entry.LinkPath);
+                bool isLink = linkPresent && IO.NativeFs.IsLink(entry.LinkPath);
+                bool targetExists = entry.IsFile ? File.Exists(entry.TargetPath) : Directory.Exists(entry.TargetPath);
+
+                if (!linkPresent) return targetExists ? MoveHealth.LinkMissing : MoveHealth.Gone;
+                if (!isLink) return MoveHealth.Replaced;
+                if (!targetExists) return MoveHealth.TargetMissing;
+
+                string resolved = IOHelper.GetSymbolicLinkTarget(entry.LinkPath);
+                if (resolved == null || Normalize(resolved) != Normalize(IOHelper.GetSymbolicLinkTarget(entry.TargetPath) ?? entry.TargetPath))
+                    return MoveHealth.PointsElsewhere;
+                return MoveHealth.Healthy;
+            }
+            catch
+            {
+                return MoveHealth.Gone;
+            }
+        }
+
+        /// <summary>Moves that haven't been undone (whatever their state on disk now).</summary>
+        public static List<MoveEntry> ActiveMoves() =>
+            Load().Batches.Where(b => !b.IsUndoBatch).SelectMany(b => b.Entries)
+                .Where(e => e.State == MoveEntryState.Moved).ToList();
+
+        /// <summary>
+        /// Adds links found on disk (see <see cref="FindUnrecordedLinks"/>) as one batch, so they
+        /// can be checked and undone like any other move. Returns how many were added.
+        /// </summary>
+        public static int AddRecoveredEntries(List<MoveEntry> entries)
+        {
+            if (entries.Count == 0) return 0;
+            Guid batchId = Guid.NewGuid();
+            Modify(data =>
+            {
+                var batch = new MoveBatch { Id = batchId };
+                batch.Entries.AddRange(entries);
+                data.Batches.Add(batch);
+            });
+            return entries.Count;
+        }
+
+        /// <summary>
+        /// Looks for links that FreeMove (or someone) made from the system drive to another drive
+        /// and that History doesn't know about, e.g. after History was lost. Only the places
+        /// programs and their data live are searched, a few levels deep. Windows' own
+        /// compatibility links point to the same drive, so they are not included.
+        /// </summary>
+        public static List<MoveEntry> FindUnrecordedLinks(CancellationToken token)
+        {
+            var known = new HashSet<string>(
+                Load().Batches.Where(b => !b.IsUndoBatch).SelectMany(b => b.Entries)
+                    .Where(e => e.State == MoveEntryState.Moved).Select(e => Normalize(e.LinkPath)));
+            var found = new List<MoveEntry>();
+            string systemDrive = Recommendations.RecommendationScanner.SystemDrive;
+
+            void Scan(string folder, int depth)
+            {
+                if (depth < 0 || token.IsCancellationRequested || string.IsNullOrEmpty(folder)) return;
+                IEnumerable<string> children;
+                try { children = Directory.EnumerateFileSystemEntries(folder).ToList(); }
+                catch { return; }
+                foreach (string child in children)
+                {
+                    if (token.IsCancellationRequested) return;
+                    if (IO.NativeFs.IsLink(child))
+                    {
+                        string target = IOHelper.GetSymbolicLinkTarget(child);
+                        if (target == null || known.Contains(Normalize(child))) continue;
+                        string targetRoot = Path.GetPathRoot(target);
+                        if (string.Equals(targetRoot, systemDrive, StringComparison.OrdinalIgnoreCase)) continue;
+                        bool isFile = File.Exists(target);
+                        long size = 0;
+                        try { size = isFile ? new FileInfo(target).Length : Recommendations.RecommendationScanner.GetDirectorySize(target, token); }
+                        catch { }
+                        found.Add(new MoveEntry { LinkPath = child.TrimEnd('\'), TargetPath = target.TrimEnd('\'), IsFile = isFile, SizeBytes = size });
+                    }
+                    else if (Directory.Exists(child))
+                    {
+                        Scan(child, depth - 1);
+                    }
+                }
+            }
+
+            string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            Scan(Path.Combine(profile, "AppData", "Local"), 2);
+            Scan(Path.Combine(profile, "AppData", "Roaming"), 2);
+            Scan(Path.Combine(profile, "AppData", "LocalLow"), 2);
+            Scan(profile, 1);
+            Scan(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), 2);
+            Scan(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), 2);
+            Scan(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), 2);
+            Scan(systemDrive, 1);
+
+            return found
+                .GroupBy(e => Normalize(e.LinkPath))
+                .Select(g => g.First())
+                .ToList();
         }
 
         static string Normalize(string path) =>

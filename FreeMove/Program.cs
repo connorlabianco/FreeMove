@@ -97,6 +97,16 @@ namespace FreeMove
                 // 如果设置中的语言代码无效，忽略并使用系统默认
             }
 
+            // Anything unexpected goes to the log, so it can be traced after the fact
+            Application.ThreadException += (s, e) =>
+            {
+                Log.Error("Unhandled error", e.Exception);
+                MessageBox.Show(e.Exception.Message + "\n\n" + string.Format(Properties.Resources.ResourceManager.GetString("Log_SeeLog") ?? "Details were saved to the log in {0}.", Log.Folder),
+                    Properties.Resources.ResourceManager.GetString("ErrorTitle") ?? "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            };
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => Log.Error("Fatal error", e.ExceptionObject as Exception);
+            Log.Info("FreeMove " + Application.ProductVersion + " started" + (skipSecurityChecks ? " (unsafe mode)" : ""));
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Form1(skipSecurityChecks, sourcePath, destPath));

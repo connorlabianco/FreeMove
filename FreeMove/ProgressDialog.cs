@@ -62,10 +62,31 @@ namespace FreeMove
         /// </summary>
         public void ShowIndeterminate(string message)
         {
+            // Wider, so status lines like "Checking that no file is in use: 12,000 of 40,000" fit
+            const int width = 440;
+            int extra = width - ClientSize.Width;
+            if (extra > 0)
+            {
+                progressBar1.Width += extra;
+                label_Progress.Left += extra;
+                button_Cancel.Left += extra;
+                ClientSize = new System.Drawing.Size(width, ClientSize.Height);
+            }
+            label_Message.AutoSize = false;
+            label_Message.AutoEllipsis = true;
+            label_Message.Width = progressBar1.Width;
             Message = message;
             label_Progress.Text = "";
             progressBar1.Style = ProgressBarStyle.Marquee;
             progressBar1.MarqueeAnimationSpeed = 30;
+        }
+
+        /// <summary>Replaces the message line. Safe to call from any thread.</summary>
+        public void SetStatus(string text)
+        {
+            if (!IsHandleCreated || IsDisposed) return;
+            try { BeginInvoke(new Action(() => { if (!IsDisposed) Message = text; })); }
+            catch (InvalidOperationException) { }   // the window closed meanwhile
         }
 
         public event EventHandler CancelRequested

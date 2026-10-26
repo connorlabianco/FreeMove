@@ -224,7 +224,7 @@ namespace FreeMove.Recommendations
         /// Folders holding the executable of a service or driver that starts with Windows
         /// (boot, system or automatic start). Such a folder is in use whenever the PC is on.
         /// </summary>
-        static List<string> GetAutoStartServiceFolders()
+        internal static List<string> GetAutoStartServiceFolders()
         {
             var folders = new List<string>();
             try

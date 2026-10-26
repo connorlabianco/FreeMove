@@ -144,26 +144,42 @@ namespace FreeMove
             }
         }
 
-        private void treeView_Dirs_BeforeExpand(object sender, TreeViewCancelEventArgs e)
+        private async void treeView_Dirs_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
             TreeNode node = e.Node;
-            if (node.Nodes.Count == 1 && node.Nodes[0].Text == "")
+            if (node.Nodes.Count == 1 && node.Nodes[0].Text == "" && node.Nodes[0].Tag == null)
             {
-                node.Nodes.Clear();
+                // Listing a big folder or a slow drive can take a while: do it in the background and
+                // show "Loading..." meanwhile, so the window keeps responding
+                TreeNode placeholder = node.Nodes[0];
+                placeholder.Text = Properties.Resources.ResourceManager.GetString("Browser_Loading") ?? "Loading...";
+                placeholder.Tag = "loading";
                 string path = (string)node.Tag;
+
+                List<string> children = await Task.Run(() =>
+                {
+                    try { return Directory.GetDirectories(path).ToList(); }
+                    catch (UnauthorizedAccessException) { return new List<string>(); }   // 跳过无权限目录
+                    catch (Exception ex) { Console.WriteLine(ex.Message); return new List<string>(); }
+                });
+
+                if (treeView_Dirs.IsDisposed || node.TreeView == null) return;
+                treeView_Dirs.BeginUpdate();
                 try
                 {
-                    foreach (string dir in Directory.GetDirectories(path))
+                    node.Nodes.Clear();
+                    foreach (string dir in children)
                     {
-                        DirectoryInfo di = new DirectoryInfo(dir);
-                        TreeNode child = new TreeNode(di.Name);
-                        child.Tag = di.FullName;
+                        TreeNode child = new TreeNode(Path.GetFileName(dir.TrimEnd('\\')));
+                        child.Tag = dir;
                         child.Nodes.Add(""); // 占位符
                         node.Nodes.Add(child);
                     }
                 }
-                catch (UnauthorizedAccessException) { /* 跳过无权限目录 */ }
-                catch (Exception ex) { Console.WriteLine(ex.Message); }
+                finally
+                {
+                    treeView_Dirs.EndUpdate();
+                }
             }
         }
 
@@ -445,6 +461,23 @@ namespace FreeMove
             }
         }
 
+        /// <summary>Fills a node's subfolders immediately if they haven't been loaded yet.</summary>
+        private void LoadChildrenNow(TreeNode node)
+        {
+            if (!(node.Nodes.Count == 1 && node.Nodes[0].Text == "" && node.Nodes[0].Tag == null)) return;
+            node.Nodes.Clear();
+            try
+            {
+                foreach (string dir in Directory.GetDirectories((string)node.Tag))
+                {
+                    TreeNode child = new TreeNode(Path.GetFileName(dir.TrimEnd('\\'))) { Tag = dir };
+                    child.Nodes.Add("");
+                    node.Nodes.Add(child);
+                }
+            }
+            catch { }
+        }
+
         private void LocatePathInTreeView(string targetPath)
         {
             targetPath = targetPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -470,6 +503,7 @@ namespace FreeMove
 
             foreach (string part in parts)
             {
+                LoadChildrenNow(currentNode);   // the path must be found right away, not in the background
                 currentNode.Expand();
                 TreeNode foundChild = null;
                 foreach (TreeNode child in currentNode.Nodes)

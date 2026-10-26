@@ -97,12 +97,27 @@ namespace FreeMove
 
         private async Task MoveRecommendationsCore(List<MoveRecommendation> items, string destinationRoot)
         {
+            try { Settings.LastDestinationRoot = destinationRoot; } catch { }   // remembered for next time
             var jobs = items.Select(i => new MoveJob
             {
                 Source = i.SourcePath.TrimEnd('\\'),
                 Destination = i.GetDestination(destinationRoot),
                 SizeBytes = i.SizeBytes
             }).ToList();
+
+            await MoveJobsWithChecks(jobs, recommendedBatch: true, R("Rec_SummaryTitle", "Recommended moves"));
+        }
+
+        /// <summary>
+        /// Moves several items (Recommended moves or the manual queue): first the warnings about
+        /// risky folders and drives, then what to do with destinations that already exist (each is
+        /// skipped unless the person chooses to overwrite it), then the moves, then a summary.
+        /// </summary>
+        private async Task MoveJobsWithChecks(List<MoveJob> jobs, bool recommendedBatch, string summaryTitle)
+        {
+            var skippedRisky = new List<string>();
+            jobs = await ConfirmSafety(jobs, skippedRisky);
+            if (jobs == null || closeWhenIdle) return;
 
             var skippedConflicts = new List<string>();
             List<MoveJob> conflicts = jobs.Where(j => PathExists(j.Destination)).ToList();
@@ -128,10 +143,11 @@ namespace FreeMove
                 jobs = jobs.Where(j => !conflicts.Contains(j) || j.Overwrite).ToList();
             }
 
-            MoveBatchResult result = await RunMoveJobs(jobs, recommendedBatch: true);
+            MoveBatchResult result = jobs.Count > 0 ? await RunMoveJobs(jobs, recommendedBatch) : new MoveBatchResult();
             if (closeWhenIdle) return;   // closing: the results are in History
             result.Skipped.InsertRange(0, skippedConflicts);
-            ShowBatchSummary(result, R("Rec_SummaryTitle", "Recommended moves"));
+            result.Skipped.InsertRange(0, skippedRisky);
+            ShowBatchSummary(result, summaryTitle);
         }
 
         /// <summary>
@@ -213,6 +229,7 @@ namespace FreeMove
                 summary.Append(R("Rec_SummaryCancelled", "The batch was cancelled; remaining folders were not touched."));
             }
 
+            BringMainWindowForward();
             ScrollableMessageBox.Show(this, summary.ToString(), title, MessageBoxButtons.OK,
                 result.Failed.Count > 0 || result.Warnings.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
         }
@@ -267,6 +284,14 @@ namespace FreeMove
                 }
 
                 MoveOutcome outcome = await MoveAndLinkOne(job, queue, batchId, recommendedBatch);
+                if (outcome.Success)
+                    Log.Info($"Moved {job.Source} -> {job.Destination} ({RecommendationScanner.FormatSize(outcome.SizeBytes)})" +
+                             (outcome.Warnings.Count > 0 ? "; notes: " + string.Join(" | ", outcome.Warnings) : ""));
+                else if (outcome.Cancelled)
+                    Log.Info($"{(queue.SkipCurrent ? "Skipped" : "Cancelled")} {job.Source}" + (outcome.Error != null ? ": " + outcome.Error : ""));
+                else
+                    Log.Error($"Move failed: {job.Source} -> {job.Destination}: {outcome.Error}");
+
                 if (outcome.Success)
                 {
                     result.Moved.Add(job);
@@ -332,8 +357,8 @@ namespace FreeMove
                     // Same checks as a manual move (protected folders, safe mode, permissions, free space).
                     // They read every file, so they run in the background to keep the window responsive.
                     bool safe = safeMode, skipChecks = skipSecurityChecks, overwrite = job.Overwrite;
-                    await RunCheck(() => IOHelper.CheckDirectories(source, destination, safe, createDestination: true,
-                        skipAllChecks: skipChecks, allowExistingDestination: overwrite), queue);
+                    await RunCheck(status => IOHelper.CheckDirectories(source, destination, safe, createDestination: true,
+                        skipAllChecks: skipChecks, allowExistingDestination: overwrite, status: status), queue);
                 }
             }
             catch (OperationCanceledException)

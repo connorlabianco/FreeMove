@@ -31,6 +31,10 @@ namespace FreeMove.History
         readonly Button button_Clear;
         readonly Button button_Close;
         readonly Button button_DeleteBackups;
+        readonly Button button_Health;
+        readonly Button button_UndoAll;
+        readonly Button button_FindMissing;
+        readonly Label label_Saved;
         bool updatingChecks;
 
         // Disk checks are done once when the list loads, not on every click
@@ -108,8 +112,38 @@ namespace FreeMove.History
             bottom.Controls.Add(button_Undo, 3, 0);
             bottom.Controls.Add(button_Close, 4, 0);
 
+            // --- Top: what's moved now, and tools for the whole history ---
+            var top = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                ColumnCount = 4,
+                Padding = new Padding(8, 8, 8, 4)
+            };
+            top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            for (int i = 0; i < 3; i++) top.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+            label_Saved = new Label { AutoSize = true, Anchor = AnchorStyles.Left, MaximumSize = new Size(420, 0) };
+            button_Health = new Button { Text = T("Hist_HealthCheck", "Health check"), AutoSize = true };
+            button_Health.Click += async (s, e) => await HealthCheckAsync();
+            button_FindMissing = new Button { Text = T("Hist_FindMissing", "Find missing moves"), AutoSize = true };
+            button_FindMissing.Click += async (s, e) => await FindMissingAsync();
+            button_UndoAll = new Button { Text = T("Hist_UndoAll", "Move everything back"), AutoSize = true };
+            button_UndoAll.Click += UndoAll_Click;
+
+            var tips = new ToolTip();
+            tips.SetToolTip(button_Health, T("Hist_HealthTip", "Check that every moved folder still has its link and that the moved files are reachable."));
+            tips.SetToolTip(button_FindMissing, T("Hist_FindMissingTip", "Look for links to other drives that aren't in this list (for example after History was lost) and add them."));
+            tips.SetToolTip(button_UndoAll, T("Hist_UndoAllTip", "Move every moved folder back to where it was. Do this before uninstalling FreeMove or wiping the other drive."));
+
+            top.Controls.Add(label_Saved, 0, 0);
+            top.Controls.Add(button_Health, 1, 0);
+            top.Controls.Add(button_FindMissing, 2, 0);
+            top.Controls.Add(button_UndoAll, 3, 0);
+
             Controls.Add(tree);
             Controls.Add(bottom);
+            Controls.Add(top);
             CancelButton = button_Close;
 
             LoadTree();
@@ -160,6 +194,17 @@ namespace FreeMove.History
 
             if (tree.Nodes.Count == 0)
                 label_Status.Text = T("Hist_Empty", "No moves yet. Moves you make with FreeMove will appear here.");
+
+            // How much is moved off each drive right now
+            List<MoveEntry> moved = data.Batches.Where(b => !b.IsUndoBatch).SelectMany(b => b.Entries)
+                .Where(en => StateOf(en) == MoveEntryLiveState.Moved).ToList();
+            string perDrive = string.Join(", ", moved
+                .GroupBy(en => (Path.GetPathRoot(en.LinkPath) ?? "").ToUpperInvariant())
+                .Select(g => string.Format(T("Hist_SavedDrive", "{0} freed from {1}"), RecommendationScanner.FormatSize(g.Sum(en => en.SizeBytes)), g.Key.TrimEnd('\\'))));
+            label_Saved.Text = moved.Count == 0
+                ? T("Hist_SavedNone", "Nothing is moved right now.")
+                : string.Format(T("Hist_Saved", "{0} item(s) moved: {1}."), moved.Count, perDrive);
+            button_UndoAll.Enabled = moved.Count > 0;
             UpdateStatus();
             UpdateBackupButton();
         }
@@ -313,9 +358,127 @@ namespace FreeMove.History
             }
         }
 
-        void Undo_Click(object sender, EventArgs e)
+        void Undo_Click(object sender, EventArgs e) => ConfirmAndUndo(SelectedEntries);
+
+        /// <summary>Every move that can still be undone, e.g. before uninstalling FreeMove.</summary>
+        void UndoAll_Click(object sender, EventArgs e)
         {
-            List<MoveEntry> selected = SelectedEntries;
+            List<MoveEntry> all = AllNodes(tree.Nodes).Select(n => n.Tag).OfType<MoveEntry>()
+                .Where(en => !IsUndoRecord(en) && IsUndoable(en))
+                .GroupBy(en => en.Id).Select(g => g.First()).ToList();
+            if (all.Count == 0) return;
+            ConfirmAndUndo(all);
+        }
+
+        bool IsUndoRecord(MoveEntry entry) =>
+            AllNodes(tree.Nodes).Any(n => n.Tag is MoveBatch b && b.IsUndoBatch && b.Entries.Contains(entry));
+
+        /// <summary>Checks every move and offers to repair what can be repaired.</summary>
+        async System.Threading.Tasks.Task HealthCheckAsync()
+        {
+            button_Health.Enabled = false;
+            UseWaitCursor = true;
+            List<HealthIssue> issues;
+            try { issues = await System.Threading.Tasks.Task.Run(() => HealthCheck.Run()); }
+            finally
+            {
+                UseWaitCursor = false;
+                if (!IsDisposed) button_Health.Enabled = true;
+            }
+            if (IsDisposed) return;
+            ShowHealthReport(this, issues);
+            LoadTree();
+        }
+
+        /// <summary>
+        /// Shows the result of a health check and repairs the missing links if the person agrees.
+        /// Shared with the check the main window runs at startup.
+        /// </summary>
+        public static void ShowHealthReport(IWin32Window owner, List<HealthIssue> issues)
+        {
+            string title = T("Hist_HealthCheck", "Health check");
+            if (issues.Count == 0)
+            {
+                MessageBox.Show(owner, T("Health_AllGood", "Every moved item has its link in place and its files are reachable."),
+                    title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            foreach (HealthIssue issue in issues) Log.Warn("Health check: " + issue.Health + " " + issue.Entry.LinkPath + " -> " + issue.Entry.TargetPath);
+
+            string report = HealthCheck.Report(issues);
+            List<HealthIssue> repairable = issues.Where(i => i.CanRepair).ToList();
+            if (repairable.Count == 0)
+            {
+                Dialogs.ScrollableMessageBox.Show(owner, report, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            report += "\n\n" + string.Format(T("Health_RepairQuestion", "Recreate the {0} missing link(s) now?"), repairable.Count);
+            if (Dialogs.ScrollableMessageBox.Show(owner, report, title, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                return;
+
+            var errors = new List<string>();
+            foreach (HealthIssue issue in repairable)
+            {
+                string error = HealthCheck.Repair(issue);
+                if (error != null) errors.Add(issue.Entry.LinkPath + "\n    " + error);
+            }
+            if (errors.Count == 0)
+                MessageBox.Show(owner, T("Health_Repaired", "The missing links were recreated."), title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            else
+                Dialogs.ScrollableMessageBox.Show(owner, T("Health_RepairFailed", "Some links couldn't be recreated:") + "\n\n" + string.Join("\n\n", errors),
+                    title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        /// <summary>Finds links to other drives that History doesn't list, and adds them.</summary>
+        async System.Threading.Tasks.Task FindMissingAsync()
+        {
+            button_FindMissing.Enabled = false;
+            UseWaitCursor = true;
+            string oldStatus = label_Status.Text;
+            label_Status.Text = T("Hist_Searching", "Searching for links...");
+            List<MoveEntry> found;
+            try
+            {
+                found = await System.Threading.Tasks.Task.Run(() => MoveHistory.FindUnrecordedLinks(System.Threading.CancellationToken.None));
+            }
+            catch (Exception ex)
+            {
+                found = new List<MoveEntry>();
+                Log.Error("Find missing moves failed", ex);
+            }
+            finally
+            {
+                UseWaitCursor = false;
+                if (!IsDisposed)
+                {
+                    button_FindMissing.Enabled = true;
+                    label_Status.Text = oldStatus;
+                }
+            }
+            if (IsDisposed) return;
+
+            string title = T("Hist_FindMissing", "Find missing moves");
+            if (found.Count == 0)
+            {
+                MessageBox.Show(this, T("Hist_FindNone", "No links to other drives were found that aren't already in History."),
+                    title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            string list = string.Join("\n", found.Select(f => $"{f.LinkPath}  →  {f.TargetPath}"));
+            string question = string.Format(T("Hist_FindQuestion", "Found {0} link(s) to other drives that aren't in History:\n\n{1}\n\nAdd them, so they can be checked and moved back like any other move?"), found.Count, list);
+            if (Dialogs.ScrollableMessageBox.Show(this, question, title, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            MoveHistory.AddRecoveredEntries(found);
+            Log.Info($"Added {found.Count} link(s) found on disk to History");
+            LoadTree();
+        }
+
+        void ConfirmAndUndo(List<MoveEntry> selected)
+        {
             if (selected.Count == 0) return;
             if (IsBusy?.Invoke() == true)
             {

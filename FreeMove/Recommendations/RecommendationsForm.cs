@@ -84,7 +84,7 @@ namespace FreeMove.Recommendations
             top.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             top.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
-            textBox_Dest = new TextBox { Dock = DockStyle.Fill, Text = RecommendationScanner.SuggestDestinationRoot() ?? @"D:\FreeMove" };
+            textBox_Dest = new TextBox { Dock = DockStyle.Fill, Text = RememberedDestination() ?? RecommendationScanner.SuggestDestinationRoot() ?? @"D:\FreeMove" };
             textBox_Dest.TextChanged += (s, e) => RefreshItems();
             button_BrowseDest = new Button { Text = T("Button_Browse", "Browse..."), AutoSize = true };
             button_BrowseDest.Click += BrowseDest_Click;
@@ -269,8 +269,32 @@ namespace FreeMove.Recommendations
             bool fits = free < 0 || total < free;
             if (!fits)
                 label_Status.Text += " " + T("Rec_NotEnoughSpace", "Not enough free space for this selection.");
+            if (IsRemovable(DestinationRoot))
+                label_Status.Text += " " + T("Rec_RemovableWarning", "Warning: this is a removable drive; programs will break whenever it is unplugged.");
 
             button_Move.Enabled = selected.Count > 0 && fits;
+        }
+
+        /// <summary>The destination used last time, if its drive is still there.</summary>
+        static string RememberedDestination()
+        {
+            try
+            {
+                string last = Settings.LastDestinationRoot;
+                if (string.IsNullOrWhiteSpace(last)) return null;
+                return IsDestinationValid(last, out _) ? last : null;
+            }
+            catch { return null; }
+        }
+
+        static bool IsRemovable(string root)
+        {
+            try
+            {
+                var info = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(root)));
+                return info.DriveType == DriveType.Removable || info.DriveType == DriveType.Network;
+            }
+            catch { return false; }
         }
 
         static bool IsDestinationValid(string root, out string error)

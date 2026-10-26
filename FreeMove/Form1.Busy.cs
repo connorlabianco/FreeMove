@@ -113,26 +113,42 @@ namespace FreeMove
         /// Skip remaining is shown. Throws <see cref="OperationCanceledException"/> if the person
         /// cancels or skips; the checks only read files, so stopping waiting for them is safe.
         /// </summary>
-        Task RunCheck(Action check, BatchQueue queue = null) =>
+        Task RunCheck(Action<Action<string>> check, BatchQueue queue = null, string message = null) =>
             RunOperation(new CheckOperation(check), queue,
-                R("Check_Checking", "Checking the files before moving..."));
+                message ?? R("Check_Checking", "Checking the files before moving..."));
 
-        /// <summary>A background check that can be abandoned from the progress window.</summary>
+        /// <summary>
+        /// A background check that can be abandoned from the progress window. The check is given a
+        /// callback for status text ("12,000 files found..."), shown at most a few times a second.
+        /// </summary>
         class CheckOperation : IO.IOOperation
         {
-            readonly Action check;
+            readonly Action<Action<string>> check;
             readonly TaskCompletionSource<bool> cancelled = new TaskCompletionSource<bool>();
+            readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+            long lastStatus = -1000;
 
-            public CheckOperation(Action check) { this.check = check; }
+            /// <summary>Status text from the check; raised on a background thread.</summary>
+            public event Action<string> StatusChanged;
+
+            public CheckOperation(Action<Action<string>> check) { this.check = check; }
 
             public override void Cancel() => cancelled.TrySetResult(true);
+
+            void Report(string text)
+            {
+                long now = clock.ElapsedMilliseconds;
+                if (now - System.Threading.Interlocked.Read(ref lastStatus) < 200) return;
+                System.Threading.Interlocked.Exchange(ref lastStatus, now);
+                StatusChanged?.Invoke(text);
+            }
 
             public override async Task Run()
             {
                 OnStart(EventArgs.Empty);
                 try
                 {
-                    Task work = Task.Run(check);
+                    Task work = Task.Run(() => check(Report));
                     if (await Task.WhenAny(work, cancelled.Task) != work)
                     {
                         // Let the abandoned check finish quietly in the background

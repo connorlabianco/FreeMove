@@ -63,7 +63,7 @@
 
   <data name="AboutContent" xml:space="preserve">
     <value>imDema/FreeMove {0} —— 移动目录而不破坏快捷方式或安装
-版权所有 (C) 2020  Luca De Martini, fengyec2
+版权所有 (C) 2020  Luca De Martini, fengyec2, Connor Labianco
 
 本程序是自由软件：您可以在 GNU 通用公共许可证（GPL）第 3 版或（由您选择）任何更新版本的条款下重新分发和/或修改本程序。
 
@@ -73,7 +73,9 @@
 
 https://github.com/imDema
 
-https://github.com/fengyec2</value>
+https://github.com/fengyec2
+
+https://github.com/connorlabianco/FreeMove</value>
   </data>
 
   <data name="DisableSafeModeMessage" xml:space="preserve">
@@ -1044,6 +1046,270 @@ https://github.com/fengyec2</value>
   </data>
   <data name="Rec_OnlyCopyKept" xml:space="preserve">
     <value>文件现在只存在于 {0} 中；已保留在那里。</value>
+  </data>
+  <data name="Log_SeeLog" xml:space="preserve">
+    <value>详细信息已保存到日志：{0}。</value>
+  </data>
+  <data name="Browser_Loading" xml:space="preserve">
+    <value>正在加载...</value>
+  </data>
+  <data name="Busy_ClosingWhenDone" xml:space="preserve">
+    <value>当前项目完成后将关闭...</value>
+  </data>
+  <data name="Check_Checking" xml:space="preserve">
+    <value>正在迁移前检查文件...</value>
+  </data>
+  <data name="Busy_AlreadyMoving" xml:space="preserve">
+    <value>FreeMove 正在迁移文件。请等待完成后再试。</value>
+  </data>
+  <data name="Queue_Add" xml:space="preserve">
+    <value>加入队列</value>
+  </data>
+  <data name="Preview_Button" xml:space="preserve">
+    <value>预览...</value>
+  </data>
+  <data name="Menu_Queue" xml:space="preserve">
+    <value>队列</value>
+  </data>
+  <data name="Menu_QueueCount" xml:space="preserve">
+    <value>队列 ({0})</value>
+  </data>
+  <data name="Menu_OpenLog" xml:space="preserve">
+    <value>打开日志文件夹</value>
+  </data>
+  <data name="Menu_HealthOnStart" xml:space="preserve">
+    <value>启动时检查已迁移的文件夹</value>
+  </data>
+  <data name="Queue_AddTip" xml:space="preserve">
+    <value>将此迁移加入队列，以便依次迁移多个文件夹。</value>
+  </data>
+  <data name="Preview_Tip" xml:space="preserve">
+    <value>查看大小、迁移后的剩余空间、正在使用它的程序以及所有警告，而不实际迁移。</value>
+  </data>
+  <data name="Queue_NeedPaths" xml:space="preserve">
+    <value>请先选择要迁移的项目（源）和目标位置（目标）。</value>
+  </data>
+  <data name="Queue_SourceMissing" xml:space="preserve">
+    <value>{0} 不存在。</value>
+  </data>
+  <data name="Queue_SummaryTitle" xml:space="preserve">
+    <value>迁移队列</value>
+  </data>
+  <data name="Safety_Checking" xml:space="preserve">
+    <value>正在查找可能的问题：{0}</value>
+  </data>
+  <data name="Safety_CheckingTitle" xml:space="preserve">
+    <value>正在查找可能的问题...</value>
+  </data>
+  <data name="Safety_Title" xml:space="preserve">
+    <value>迁移前请确认</value>
+  </data>
+  <data name="Safety_IntroOne" xml:space="preserve">
+    <value>此迁移可能会导致问题：</value>
+  </data>
+  <data name="Safety_AskOne" xml:space="preserve">
+    <value>仍要迁移吗？</value>
+  </data>
+  <data name="Safety_IntroMany" xml:space="preserve">
+    <value>这 {1} 个项目中有 {0} 个可能会导致问题：</value>
+  </data>
+  <data name="Safety_AskMany" xml:space="preserve">
+    <value>是：仍然全部迁移
+否：跳过这些，迁移其余项目
+取消：不迁移任何项目</value>
+  </data>
+  <data name="Safety_SkippedNote" xml:space="preserve">
+    <value>（因警告而跳过）</value>
+  </data>
+  <data name="Preview_Working" xml:space="preserve">
+    <value>正在准备预览...</value>
+  </data>
+  <data name="Preview_Title" xml:space="preserve">
+    <value>预览（尚未迁移任何内容）</value>
+  </data>
+  <data name="Preview_Measuring" xml:space="preserve">
+    <value>正在计算 {0}</value>
+  </data>
+  <data name="Preview_Missing" xml:space="preserve">
+    <value>不存在。</value>
+  </data>
+  <data name="Preview_Size" xml:space="preserve">
+    <value>大小：{0}</value>
+  </data>
+  <data name="Preview_AlreadyLink" xml:space="preserve">
+    <value>这已经是一个链接，没有可迁移的内容。</value>
+  </data>
+  <data name="Preview_Exists" xml:space="preserve">
+    <value>目标位置已存在：迁移时会询问是否合并。</value>
+  </data>
+  <data name="Preview_Running" xml:space="preserve">
+    <value>正在运行：{0}。请在迁移前关闭它。</value>
+  </data>
+  <data name="Preview_Space" xml:space="preserve">
+    <value>剩余空间：</value>
+  </data>
+  <data name="Preview_SpaceLine" xml:space="preserve">
+    <value>{0}  当前 {1}，迁移后约 {2}</value>
+  </data>
+  <data name="Preview_NotEnough" xml:space="preserve">
+    <value>空间不足！</value>
+  </data>
+  <data name="Preview_DriveNotReady" xml:space="preserve">
+    <value>{0}  不可用</value>
+  </data>
+  <data name="Health_StartupQuestion" xml:space="preserve">
+    <value>有 {0} 个已迁移的文件夹不再处于 FreeMove 迁移后的状态（例如目标驱动器未连接，或重新安装后链接被新文件夹替换）。
+
+要查看详细信息吗？</value>
+  </data>
+  <data name="Hist_HealthCheck" xml:space="preserve">
+    <value>健康检查</value>
+  </data>
+  <data name="Drop_NeedTo" xml:space="preserve">
+    <value>要一次迁移多个项目，请先选择目标位置（目标），然后再次拖放。它们将被加入队列。</value>
+  </data>
+  <data name="Queue_Title" xml:space="preserve">
+    <value>迁移队列</value>
+  </data>
+  <data name="Queue_ColFrom" xml:space="preserve">
+    <value>迁移</value>
+  </data>
+  <data name="Queue_ColTo" xml:space="preserve">
+    <value>到</value>
+  </data>
+  <data name="Queue_Remove" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="Queue_Clear" xml:space="preserve">
+    <value>清空</value>
+  </data>
+  <data name="Queue_MoveAll" xml:space="preserve">
+    <value>全部迁移</value>
+  </data>
+  <data name="Queue_Empty" xml:space="preserve">
+    <value>队列为空。在主窗口中选择文件夹并点击“加入队列”，或将多个文件夹拖放到主窗口。</value>
+  </data>
+  <data name="Queue_Count" xml:space="preserve">
+    <value>{0} 个项目等待中。</value>
+  </data>
+  <data name="Queue_Confirm" xml:space="preserve">
+    <value>迁移这 {0} 个项目？
+
+{1}
+
+请先关闭正在使用它们的程序。每个项目都会被迁移，并在原位置留下链接。</value>
+  </data>
+  <data name="Hist_FindMissing" xml:space="preserve">
+    <value>查找缺失的迁移</value>
+  </data>
+  <data name="Hist_UndoAll" xml:space="preserve">
+    <value>全部迁回</value>
+  </data>
+  <data name="Hist_HealthTip" xml:space="preserve">
+    <value>检查每个已迁移的文件夹是否仍有链接，以及迁移后的文件是否可访问。</value>
+  </data>
+  <data name="Hist_FindMissingTip" xml:space="preserve">
+    <value>查找不在此列表中的指向其他驱动器的链接（例如历史记录丢失后）并添加它们。</value>
+  </data>
+  <data name="Hist_UndoAllTip" xml:space="preserve">
+    <value>将所有已迁移的文件夹迁回原位置。卸载 FreeMove 或清空另一个驱动器之前请先执行此操作。</value>
+  </data>
+  <data name="Hist_SavedDrive" xml:space="preserve">
+    <value>从 {1} 释放了 {0}</value>
+  </data>
+  <data name="Hist_SavedNone" xml:space="preserve">
+    <value>当前没有已迁移的项目。</value>
+  </data>
+  <data name="Hist_Saved" xml:space="preserve">
+    <value>已迁移 {0} 个项目：{1}。</value>
+  </data>
+  <data name="Health_AllGood" xml:space="preserve">
+    <value>所有已迁移的项目链接完好，文件均可访问。</value>
+  </data>
+  <data name="Health_RepairQuestion" xml:space="preserve">
+    <value>现在重新创建 {0} 个缺失的链接吗？</value>
+  </data>
+  <data name="Health_Repaired" xml:space="preserve">
+    <value>缺失的链接已重新创建。</value>
+  </data>
+  <data name="Health_RepairFailed" xml:space="preserve">
+    <value>部分链接无法重新创建：</value>
+  </data>
+  <data name="Hist_Searching" xml:space="preserve">
+    <value>正在查找链接...</value>
+  </data>
+  <data name="Hist_FindNone" xml:space="preserve">
+    <value>未找到不在历史记录中的指向其他驱动器的链接。</value>
+  </data>
+  <data name="Hist_FindQuestion" xml:space="preserve">
+    <value>找到 {0} 个不在历史记录中的指向其他驱动器的链接：
+
+{1}
+
+要添加它们，以便像其他迁移一样检查和迁回吗？</value>
+  </data>
+  <data name="Health_DriveMissing" xml:space="preserve">
+    <value>{0}
+    迁移目标驱动器（{1}）未连接。请重新连接；在此之前，使用此文件夹的程序将无法工作。</value>
+  </data>
+  <data name="Health_TargetMissing" xml:space="preserve">
+    <value>{0}
+    位于 {1} 的已迁移文件已不存在（被删除或重命名）。链接指向空处，使用它的程序会出错或重新初始化。</value>
+  </data>
+  <data name="Health_Replaced" xml:space="preserve">
+    <value>{0}
+    原位置现在是一个新的真实文件夹而不是链接（通常发生在重新安装或更新后），因此新数据又保存在此驱动器上。已迁移的文件仍在 {1}。请关闭程序，比较两者，然后重新迁移该文件夹或删除不需要的那个。</value>
+  </data>
+  <data name="Health_LinkMissing" xml:space="preserve">
+    <value>{0}
+    链接已被删除，但已迁移的文件仍在 {1}。FreeMove 可以重新创建链接。</value>
+  </data>
+  <data name="Health_PointsElsewhere" xml:space="preserve">
+    <value>{0}
+    链接现在指向 {1} 以外的位置。它在 FreeMove 之外被更改。</value>
+  </data>
+  <data name="Health_Gone" xml:space="preserve">
+    <value>{0}
+    链接和位于 {1} 的已迁移文件都已不存在。可以通过“清除已完成”移除此记录。</value>
+  </data>
+  <data name="Health_Found" xml:space="preserve">
+    <value>{0} 个已迁移的项目需要注意：</value>
+  </data>
+  <data name="Health_CantRepair" xml:space="preserve">
+    <value>无法自动修复此问题。</value>
+  </data>
+  <data name="Health_SomethingThere" xml:space="preserve">
+    <value>原位置现在已有内容，因此未重新创建链接。</value>
+  </data>
+  <data name="Rec_RemovableWarning" xml:space="preserve">
+    <value>警告：这是可移动驱动器；一旦拔出，程序将无法工作。</value>
+  </data>
+  <data name="Safety_CloudSource" xml:space="preserve">
+    <value>{0} 由云服务（{1}）同步。通过链接将其移出通常会破坏同步，或导致服务上传或删除文件。请改用该服务自身的设置更改其文件夹。</value>
+  </data>
+  <data name="Safety_CloudDest" xml:space="preserve">
+    <value>目标位置位于云同步文件夹（{0}）内。迁移的文件会被上传，同步时服务可能会锁定它们。请选择该文件夹以外的位置。</value>
+  </data>
+  <data name="App_NoteStore" xml:space="preserve">
+    <value>Microsoft Store 应用通过链接迁移后会损坏。请改用 设置 &gt; 应用 &gt; 已安装的应用 &gt; 移动。</value>
+  </data>
+  <data name="Safety_Service" xml:space="preserve">
+    <value>一个随系统启动的 Windows 服务从 {0} 运行。它始终处于使用中，因此迁移很可能失败，而且有些服务拒绝从链接启动。</value>
+  </data>
+  <data name="Safety_Removable" xml:space="preserve">
+    <value>{0} 是可移动驱动器。一旦拔出，使用已迁移文件的程序将停止工作，并可能表现得像被重新安装一样。需要一直可用的内容请使用内置驱动器。</value>
+  </data>
+  <data name="Safety_Network" xml:space="preserve">
+    <value>{0} 是网络驱动器。网络或另一台计算机不可用时程序就会出错，而且许多程序根本无法在网络驱动器上运行。</value>
+  </data>
+  <data name="Safety_NotNtfs" xml:space="preserve">
+    <value>{0} 的格式是 {1}，不是 NTFS。那里无法保留文件权限、硬链接和隐藏数据流，有些程序也无法正常运行。强烈建议使用 NTFS 驱动器。</value>
+  </data>
+  <data name="Check_Scanning" xml:space="preserve">
+    <value>正在迁移前检查文件：已找到 {0:N0} 个...</value>
+  </data>
+  <data name="Check_Access" xml:space="preserve">
+    <value>正在检查文件是否被占用：{0:N0} / {1:N0}...</value>
   </data>
 </root>
 

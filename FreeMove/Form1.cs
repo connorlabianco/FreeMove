@@ -51,11 +51,18 @@ namespace FreeMove
             menuStrip1.Items.Insert(0, recommendedMovesToolStripMenuItem);
 
             // Finish or roll back anything interrupted last time, once the window is up
-            Shown += async (s, e) => await RecoverInterruptedOperations();
+            Shown += async (s, e) =>
+            {
+                await RecoverInterruptedOperations();
+                await StartupHealthCheck();
+            };
 
             historyToolStripMenuItem = new ToolStripMenuItem("History");
             historyToolStripMenuItem.Click += HistoryToolStripMenuItem_Click;
             menuStrip1.Items.Insert(1, historyToolStripMenuItem);
+
+            // Queue, Preview, drag and drop, log and health check options
+            SetUpFeatures();
 
             if (!string.IsNullOrEmpty(sourcePath))
                 textBox_From.Text = sourcePath;
@@ -212,6 +219,7 @@ namespace FreeMove
 
             // 刷新目录浏览器语言
             directoryBrowser1.ApplyLanguage();
+            UpdateFeatureTexts();
         }
 
         /// <summary>
@@ -253,7 +261,7 @@ namespace FreeMove
             bool safe = safeMode, createDest = chkBox_createDest.Checked, skipChecks = skipSecurityChecks;
             try
             {
-                await RunCheck(() => IOHelper.CheckDirectories(source, destination, safe, createDest, skipAllChecks: skipChecks, allowExistingDestination: allowExistingDestination));
+                await RunCheck(status => IOHelper.CheckDirectories(source, destination, safe, createDest, skipAllChecks: skipChecks, allowExistingDestination: allowExistingDestination, status: status));
                 return true;
             }
             catch (OperationCanceledException)
@@ -294,7 +302,7 @@ namespace FreeMove
                 try
                 {
                     // Re-run with Full so the move only continues after all files pass the stricter access check.
-                    await RunCheck(() => IOHelper.CheckDirectories(source, destination, safe, createDest, Settings.PermissionCheckLevel.Full, skipAllChecks: skipChecks, allowExistingDestination: allowExistingDestination));
+                    await RunCheck(status => IOHelper.CheckDirectories(source, destination, safe, createDest, Settings.PermissionCheckLevel.Full, skipAllChecks: skipChecks, allowExistingDestination: allowExistingDestination, status: status));
                     return true;
                 }
                 catch (OperationCanceledException)
@@ -353,6 +361,11 @@ namespace FreeMove
                     overwrite = true;
                 }
 
+                // Warnings about risky folders and drives (cloud sync, Store apps, anti-cheat,
+                // removable or non-NTFS destinations): the person decides
+                List<MoveJob> safe = await ConfirmSafety(new List<MoveJob> { new MoveJob { Source = source, Destination = destination } }, new List<string>());
+                if (safe == null || safe.Count == 0 || closeWhenIdle) return;
+
                 // Checks with the interactive fix for read-only files; the move then runs through the
                 // same path as Recommended moves: journal, verified copy, link check, rollback
                 if (!await PreliminaryCheck(source, destination, allowExistingDestination: overwrite))
@@ -396,6 +409,7 @@ namespace FreeMove
                 Task task = null;
                 PrepareDialog(progressDialog);
                 if (indeterminateMessage != null) progressDialog.ShowIndeterminate(indeterminateMessage);
+                if (operation is CheckOperation check) check.StatusChanged += text => progressDialog.SetStatus(text);
                 operation.ProgressChanged += (sender, e) => progressDialog.UpdateProgress(e);
 
                 progressDialog.CancelRequested += (sender, e) =>

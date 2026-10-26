@@ -48,6 +48,12 @@ namespace FreeMove
         // UI language code, e.g. "en", "zh-Hans". null/empty = follow system language
         public string LanguageCode = null;
 
+        // Last destination used for Recommended moves (e.g. D:\FreeMove). null = suggest one
+        public string LastDestination = null;
+
+        // Check moved folders for broken links each time FreeMove starts
+        public bool HealthCheckOnStart = true;
+
         public static bool AutoUpdate
         {
             set
@@ -104,6 +110,28 @@ namespace FreeMove
             {
                 var LSett = Load();
                 LSett.LanguageCode = value;
+                Save(LSett);
+            }
+        }
+
+        public static string LastDestinationRoot
+        {
+            get => Load().LastDestination;
+            set
+            {
+                var LSett = Load();
+                LSett.LastDestination = value;
+                Save(LSett);
+            }
+        }
+
+        public static bool CheckHealthOnStart
+        {
+            get => Load().HealthCheckOnStart;
+            set
+            {
+                var LSett = Load();
+                LSett.HealthCheckOnStart = value;
                 Save(LSett);
             }
         }

@@ -249,7 +249,7 @@ namespace FreeMove
         /// <summary>
         /// 根据当前界面状态和指定的权限检查级别执行移动前预检查。
         /// </summary>
-        public static void CheckDirectories(string source, string destination, bool safeMode, bool createDestination, Settings.PermissionCheckLevel? permissionCheckLevelOverride = null, bool skipAllChecks = false, bool allowExistingDestination = false)
+        public static void CheckDirectories(string source, string destination, bool safeMode, bool createDestination, Settings.PermissionCheckLevel? permissionCheckLevelOverride = null, bool skipAllChecks = false, bool allowExistingDestination = false, Action<string> status = null)
         {
             // 如果禁用所有安全检查，直接返回
             if (skipAllChecks)
@@ -351,8 +351,11 @@ namespace FreeMove
             try
             {
                 IEnumerable<string> files = File.Exists(source) ? new[] { source } : IO.NativeFs.EnumerateFiles(source, skipUnreadable: false);
+                long scanned = 0;
                 foreach (string file in files)
                 {
+                    if (status != null && ++scanned % 500 == 0)
+                        status(string.Format(CultureInfo.CurrentUICulture, rm.GetString("Check_Scanning") ?? "Checking the files before moving: {0:N0} found...", scanned));
                     FileInfo info = new FileInfo(file);
                     if ((info.Attributes & FileAttributes.ReparsePoint) != 0 && IO.NativeFs.IsLink(file)) continue;
                     size += info.Length;
@@ -395,8 +398,13 @@ namespace FreeMove
             if (permissionCheckLevel != Settings.PermissionCheckLevel.None && filesToCheck.Count > 0)
             {
                 var exceptionBag = new ConcurrentBag<Exception>();
+                long checkedCount = 0;
+                int total = filesToCheck.Count;
                 Parallel.ForEach(filesToCheck, new ParallelOptions { MaxDegreeOfParallelism = 4 }, file =>
                 {
+                    long done = System.Threading.Interlocked.Increment(ref checkedCount);
+                    if (status != null && (done % 200 == 0 || done == total))
+                        status(string.Format(CultureInfo.CurrentUICulture, rm.GetString("Check_Access") ?? "Checking that no file is in use: {0:N0} of {1:N0}...", done, total));
                     Exception failure = TryCreateAccessCheckException(file);
                     if (failure != null)
                     {

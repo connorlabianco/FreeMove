@@ -45,6 +45,15 @@ scoop install freemove
 - [x] Batch progress (item i of j) with Skip and Skip remaining
 - [x] In-use detection with End tasks and retry
 - [x] Never overwrites silently: warns first, with Skip or Overwrite
+- [x] Move queue: line up several manual moves (or drop several folders on the window) and move them in one go
+- [x] Preview: size, free space before and after, programs using it and warnings, without moving anything
+- [x] Warnings for risky moves: cloud-synced folders (detected from Windows, any sync app), Microsoft Store apps, Windows services, removable, network or non-NTFS drives
+- [x] Health check: finds moved folders whose drive is missing or whose link was replaced by a reinstall, and recreates missing links (also runs at startup)
+- [x] "Move everything back" before uninstalling FreeMove or wiping a drive
+- [x] History backups, and "Find missing moves" to rebuild History from the links on disk
+- [x] Space saved per drive shown in History
+- [x] Log file for troubleshooting (Info > Open log folder)
+- [x] Drag and drop folders onto the window
 
 *Feel free to reach out with ideas for new implementations*
 

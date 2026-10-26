@@ -49,6 +49,7 @@ namespace FreeMove
                 }
             })));
 
+            foreach (string line in report) Log.Info("Recovery: " + line);
             if (report.Count > 0)
             {
                 ScrollableMessageBox.Show(this,
