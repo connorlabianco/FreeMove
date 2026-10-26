@@ -1,0 +1,1319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AboutContent" xml:space="preserve">
+    <value>imDema/FreeMove {0} -- Move directories without breaking shortcuts or installations 
+Copyright(C) 2020  Luca De Martini, fengyec2, Connor Labianco
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.If not, see&lt;http://www.gnu.org/licenses/&gt;.
+
+https://github.com/imDema
+
+https://github.com/fengyec2
+
+https://github.com/connorlabianco/FreeMove</value>
+  </data>
+  <data name="DisableSafeModeMessage" xml:space="preserve">
+    <value>It's strongly recommended not to move the "Program Files" or the "Program Files (x86)" directories as it can lead to unexpected behaviour.
+You are free to move any of the programs contained in those directories without any problem instead.
+
+Are you sure you want to disable safe mode?</value>
+  </data>
+  <data name="ErrorUnauthorizedLink" xml:space="preserve">
+    <value>ERROR creating symbolic link.
+The folder is in the new position but the link could not be created.
+Try running as administrator
+
+Do you want to move the files back?</value>
+  </data>
+  <data name="ErrorUnauthorizedMoveDetails" xml:space="preserve">
+    <value>The error was caused by a file which couldn't be moved, it may be in use or you may not have the required permissions.
+
+Try running this program as administrator and/or close any program that is using the file specified in the details
+
+DETAILS:</value>
+  </data>
+  <data name="ErrorUnauthorizedMoveMessage" xml:space="preserve">
+    <value>Error: {0}
+
+How do you want to proceed?
+"Abort" to revert changes
+"Ignore" to stop the program</value>
+  </data>
+  <data name="GitHubErrorMessage" xml:space="preserve">
+    <value>Could not retrieve the version information
+from the GitHub server</value>
+  </data>
+  <data name="IgnoreMessage" xml:space="preserve">
+    <value>Are you sure you want to proceed?
+
+By ignoring you will leave all the files as they are now: part of the files will already be in the new location and missing from the old one!</value>
+  </data>
+  <data name="IgnoreTextFile" xml:space="preserve">
+    <value>There was an error when moving the files using FreeMove on {0} and you chose to ignore it.
+The rest of the contents of this directory can be found at "{1}" unless they were moved.
+Next time use "Abort" in case of an error to move the files back or "Retry" to try again.
+
+If this text file was useful or if you would have preferred it wasn't created let me know.
+</value>
+  </data>
+  <data name="UserAgent" xml:space="preserve">
+    <value>ImDema-FreeMove-Updater</value>
+  </data>
+  <data name="DoneMessage" xml:space="preserve">
+    <value>Done!</value>
+  </data>
+  <data name="ErrorTitle" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="ReadOnlyPrecheckConfirmTitle" xml:space="preserve">
+    <value>Read-only files detected</value>
+  </data>
+  <data name="ReadOnlyPrecheckConfirmMessage" xml:space="preserve">
+    <value>Some files in the source folder are read-only, so the move cannot start yet.
+
+Files:
+{0}
+
+Allow FreeMove to clear the read-only attribute and continue?</value>
+  </data>
+  <data name="ReadOnlyClearFailedMessage" xml:space="preserve">
+    <value>Could not clear the read-only attribute.
+
+Details:
+{0}</value>
+  </data>
+  <data name="RemoveCopiedContentsFailed" xml:space="preserve">
+    <value>Could not remove copied contents. Try removing manually</value>
+  </data>
+  <data name="MoveBackFailedMessage" xml:space="preserve">
+    <value>Could not move back contents. Try moving manually</value>
+  </data>
+  <data name="MoveFailedDetailsFormat" xml:space="preserve">
+    <value>Details:
+{0}</value>
+  </data>
+  <data name="UndoChangesDetailsQuestion" xml:space="preserve">
+    <value>Do you want to undo the changes?
+
+Details:
+{0}</value>
+  </data>
+  <data name="UndoChangesSimpleQuestion" xml:space="preserve">
+    <value>Do you want to undo the changes?</value>
+  </data>
+  <data name="CancelledTitle" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="CancelConfirmationMessage" xml:space="preserve">
+    <value>Are you sure you want to cancel?</value>
+  </data>
+  <data name="CancelConfirmationTitle" xml:space="preserve">
+    <value>Cancel confirmation</value>
+  </data>
+  <data name="TooltipFrom" xml:space="preserve">
+    <value>Select the folder you want to move</value>
+  </data>
+  <data name="TooltipTo" xml:space="preserve">
+    <value>Select where you want to move the folder</value>
+  </data>
+  <data name="TooltipHidden" xml:space="preserve">
+    <value>Select whether you want to hide the shortcut which is created in the old location or not</value>
+  </data>
+  <data name="ErrorDetailsTitle" xml:space="preserve">
+    <value>Error details</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>About FreeMove</value>
+  </data>
+  <data name="WarningTitle" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+  <data name="MovingFilesTitle" xml:space="preserve">
+    <value>Moving files...</value>
+  </data>
+  <data name="ProgressFinishingText" xml:space="preserve">
+    <value>Finishing...</value>
+  </data>
+  <data name="LanguageChangedRestartMessage" xml:space="preserve">
+    <value>Language has been changed. The application will restart to apply the new language.</value>
+  </data>
+  <data name="LanguageChangedTitle" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Form_Title" xml:space="preserve">
+    <value>Free Move</value>
+  </data>
+  <data name="Label_From" xml:space="preserve">
+    <value>Move From:</value>
+  </data>
+  <data name="Label_To" xml:space="preserve">
+    <value>To:</value>
+  </data>
+  <data name="Button_Browse" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="Button_Move" xml:space="preserve">
+    <value>Move</value>
+  </data>
+  <data name="Button_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Checkbox_OriginalHidden" xml:space="preserve">
+    <value>Set original folder to hidden</value>
+  </data>
+  <data name="Checkbox_CreateDest" xml:space="preserve">
+    <value>Create destination folder</value>
+  </data>
+  <data name="Menu_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Menu_Info" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="Menu_Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Menu_CheckForUpdate" xml:space="preserve">
+    <value>Check for update</value>
+  </data>
+  <data name="Menu_CheckNow" xml:space="preserve">
+    <value>Check now</value>
+  </data>
+  <data name="Menu_CheckOnStart" xml:space="preserve">
+    <value>Check on program start</value>
+  </data>
+  <data name="Menu_PermissionCheck" xml:space="preserve">
+    <value>Permission check</value>
+  </data>
+  <data name="Menu_SafeMode" xml:space="preserve">
+    <value>Safe mode</value>
+  </data>
+  <data name="Menu_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Menu_Fast" xml:space="preserve">
+    <value>Fast</value>
+  </data>
+  <data name="Menu_Full" xml:space="preserve">
+    <value>Full</value>
+  </data>
+  <data name="Menu_ReportIssue" xml:space="preserve">
+    <value>Report an Issue</value>
+  </data>
+  <data name="Menu_GitHub" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="Menu_About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Menu_Lang_English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Menu_Lang_Chinese" xml:space="preserve">
+    <value>Chinese</value>
+  </data>
+  <data name="AdminRequiredMessage" xml:space="preserve">
+    <value>This application must be run as administrator in order to move folders and create junctions.
+
+Please right-click the executable and choose "Run as administrator".</value>
+  </data>
+  <data name="AdminRequiredTitle" xml:space="preserve">
+    <value>Administrator required</value>
+  </data>
+  <data name="HelpButtonText" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="HelpContent" xml:space="preserve">
+    <value>FreeMove - Help
+
+Move From:  Select the folder you want to move (for example, a program folder under Program Files).
+To:         Select the target location (for example, another drive) where you want to move the folder.
+Browse...   Open a folder picker dialog to choose the source or target folder.
+
+Move:       Start moving the selected folder to the target location and create a junction at the original path.
+Close:      Close the application window.
+
+Set original folder to hidden:
+            After moving, set the junction at the original location to Hidden so it is not visible in Explorer.
+
+Create destination folder:
+            If checked, FreeMove will create the target folder automatically when needed.
+
+Settings → Check for update:
+    - Check now:              Manually check GitHub for a newer version.
+    - Check on program start: If enabled, FreeMove will automatically check for updates when it starts.
+
+Settings → Permission check:
+    - None:  Don&apos;t check any file before moving (fastest, but may fail later if permissions are missing).
+    - Fast:  Check .exe and .dll files before moving (default).
+    - Full:  Check all files before moving (slowest, but most thorough).
+
+Settings → Safe mode:
+    Prevents moving critical system folders (such as Program Files). It is strongly recommended to keep this enabled.
+
+Info → Report an Issue:
+    Open the GitHub page to report a bug or request a feature.
+
+Info → GitHub:
+    Open the project page on GitHub.
+
+Info → About:
+    Show information about FreeMove and its license.
+
+Language:
+    - English / Chinese: Switch the user interface language (the application will restart to apply the change).</value>
+  </data>
+  <data name="Button_SetSource" xml:space="preserve">
+    <value>← Set Source</value>
+  </data>
+  <data name="Button_SetTarget" xml:space="preserve">
+    <value>→ Set Target</value>
+  </data>
+  <data name="Column_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Column_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Column_TargetPath" xml:space="preserve">
+    <value>Target Path</value>
+  </data>
+  <data name="Menu_SetSource" xml:space="preserve">
+    <value>Set as Source</value>
+  </data>
+  <data name="Menu_SetTarget" xml:space="preserve">
+    <value>Set as Target</value>
+  </data>
+  <data name="Type_Symlink" xml:space="preserve">
+    <value>Symbolic Link</value>
+  </data>
+  <data name="Type_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Menu_LocateInTreeView" xml:space="preserve">
+    <value>Locate in TreeView</value>
+  </data>
+  <data name="Menu_RestoreSymlink" xml:space="preserve">
+    <value>Restore Symbolic Link</value>
+  </data>
+  <data name="Restore_Prompt" xml:space="preserve">
+    <value>Restore the folder '{0}' from its target '{1}'? 
+
+Choose 'Yes' to MOVE all files back (deletes the target folder).
+Choose 'No' to COPY all files back (keeps the target folder).</value>
+  </data>
+  <data name="Restore_Title" xml:space="preserve">
+    <value>Restore Symbolic Link</value>
+  </data>
+  <data name="Restore_InvalidTarget" xml:space="preserve">
+    <value>The target path of this symbolic link is invalid or does not exist.</value>
+  </data>
+  <data name="Restore_NotSymlink" xml:space="preserve">
+    <value>The selected item is not a symbolic link.</value>
+  </data>
+  <data name="Search_Placeholder" xml:space="preserve">
+    <value>Search with Everything...</value>
+  </data>
+  <data name="Everything_NotRunning" xml:space="preserve">
+    <value>Everything is not running. Search results will not be available.</value>
+  </data>
+  <data name="Everything_NotInstalled" xml:space="preserve">
+    <value>Everything is not installed or the DLL is missing. Search results will not be available.</value>
+  </data>
+  <data name="Menu_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Menu_New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="Menu_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Menu_File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="Menu_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Menu_Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="ConfirmDelete_Title" xml:space="preserve">
+    <value>Confirm Delete</value>
+  </data>
+  <data name="ConfirmDelete_Message" xml:space="preserve">
+    <value>Are you sure you want to delete '{0}'?</value>
+  </data>
+  <data name="NewFolder_Title" xml:space="preserve">
+    <value>New Folder</value>
+  </data>
+  <data name="NewFolder_Prompt" xml:space="preserve">
+    <value>Enter name for new Folder:</value>
+  </data>
+  <data name="NewFile_Title" xml:space="preserve">
+    <value>New File</value>
+  </data>
+  <data name="NewFile_Prompt" xml:space="preserve">
+    <value>Enter name for new File:</value>
+  </data>
+  <data name="Error_FolderExists" xml:space="preserve">
+    <value>Folder already exists.</value>
+  </data>
+  <data name="Error_FileExists" xml:space="preserve">
+    <value>File already exists.</value>
+  </data>
+  <data name="Type_File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="Rename_Prompt" xml:space="preserve">
+    <value>Enter new name for '{0}':</value>
+  </data>
+  <data name="Restore_PrepareFailed" xml:space="preserve">
+    <value>Could not prepare restoration: {0}</value>
+  </data>
+  <data name="Restore_Failed" xml:space="preserve">
+    <value>Restoration failed: {0}</value>
+  </data>
+  <data name="ReadOnlyPrecheck_FileMessage" xml:space="preserve">
+    <value>The file "{0}" is read-only.</value>
+  </data>
+  <data name="Error_InvalidPath" xml:space="preserve">
+    <value>Invalid path</value>
+  </data>
+  <data name="Error_InvalidPathFormat" xml:space="preserve">
+    <value>Invalid path format</value>
+  </data>
+  <data name="Error_DirectoryCannotMove" xml:space="preserve">
+    <value>The "{0}" directory cannot be moved.</value>
+  </data>
+  <data name="Error_SafeModeProgramFiles" xml:space="preserve">
+    <value>It's recommended not to move the {0} directory. You can disable safe mode in the Settings menu to override this check.</value>
+  </data>
+  <data name="Error_SourceNotExist" xml:space="preserve">
+    <value>Source folder does not exist.</value>
+  </data>
+  <data name="Error_DestNameExists" xml:space="preserve">
+    <value>Destination folder already contains a folder with the same name.</value>
+  </data>
+  <data name="Error_DestParentNotExist" xml:space="preserve">
+    <value>Destination folder does not exist.</value>
+  </data>
+  <data name="Error_NoPrivileges" xml:space="preserve">
+    <value>You do not have the required privileges to move the directory.
+Try running as administrator.</value>
+  </data>
+  <data name="Error_CannotCreateSymlinkTest" xml:space="preserve">
+    <value>Could not create a symbolic link.
+Try running as administrator.</value>
+  </data>
+  <data name="Error_InsufficientDiskSpace" xml:space="preserve">
+    <value>There is not enough free space on the {0} disk. {1} MB required, {2} MB available.</value>
+  </data>
+  <data name="MoveOp_CreateDestUnauthorized" xml:space="preserve">
+    <value>Lacking required permissions to create the destination directory. Try running as administrator.</value>
+  </data>
+  <data name="MoveOp_CreateDestIOError" xml:space="preserve">
+    <value>Unable to create the destination directory.</value>
+  </data>
+  <data name="MoveOp_MoveSameDriveFailed" xml:space="preserve">
+    <value>Exception encountered while moving on the same drive</value>
+  </data>
+  <data name="MoveOp_CopyFailed" xml:space="preserve">
+    <value>Exception encountered while copying directory</value>
+  </data>
+  <data name="MoveOp_DeleteOldFailed" xml:space="preserve">
+    <value>Exception encountered while removing duplicate files in the old location</value>
+  </data>
+  <data name="Menu_NoneTooltip" xml:space="preserve">
+    <value>Don't check any file before moving</value>
+  </data>
+  <data name="Menu_FastTooltip" xml:space="preserve">
+    <value>Check all .exe and .dll files before moving</value>
+  </data>
+  <data name="Menu_FullTooltip" xml:space="preserve">
+    <value>Check all files before moving</value>
+  </data>
+  <data name="Button_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Button_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Progress_ProgressFormat" xml:space="preserve">
+    <value>{0}/{1}</value>
+  </data>
+  <data name="Everything_Err_Memory" xml:space="preserve">
+    <value>Memory error</value>
+  </data>
+  <data name="Everything_Err_RegisterClass" xml:space="preserve">
+    <value>Register window class error</value>
+  </data>
+  <data name="Everything_Err_CreateWindow" xml:space="preserve">
+    <value>Create window error</value>
+  </data>
+  <data name="Everything_Err_CreateThread" xml:space="preserve">
+    <value>Create thread error</value>
+  </data>
+  <data name="Everything_Err_InvalidIndex" xml:space="preserve">
+    <value>Invalid index</value>
+  </data>
+  <data name="Everything_Err_InvalidCall" xml:space="preserve">
+    <value>Invalid call</value>
+  </data>
+  <data name="Everything_Err_Unknown" xml:space="preserve">
+    <value>Unknown error ({0})</value>
+  </data>
+  <data name="Everything_Err_Exception" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="Updater_Checking" xml:space="preserve">
+    <value>Checking for a new version...</value>
+  </data>
+  <data name="Updater_NoUpdates" xml:space="preserve">
+    <value>There are no updates available.</value>
+  </data>
+  <data name="Updater_VersionAvailable" xml:space="preserve">
+    <value>New version available
+
+Current version: {0}
+Latest version:  {1}
+
+Open the download page?</value>
+  </data>
+  <data name="Updater_FormTitle" xml:space="preserve">
+    <value>FreeMove — Update</value>
+  </data>
+  <data name="UnsafeMode_WarningTitle" xml:space="preserve">
+    <value>Warning: All Safety Checks Disabled</value>
+  </data>
+  <data name="UnsafeMode_WarningMessage" xml:space="preserve">
+    <value>You have launched FreeMove with the --unsafe-skip-checks parameter. All safety checks have been disabled.
+
+This allows moving any directory, including critical system folders. Improper use could potentially damage your system.
+
+Proceed with caution and make sure you know what you are doing!</value>
+  </data>
+  <data name="Menu_ContextMenu" xml:space="preserve">
+    <value>Enable Context Menu</value>
+  </data>
+  <data name="ContextMenu_SetSource" xml:space="preserve">
+    <value>Set as Source</value>
+  </data>
+  <data name="ContextMenu_SetDest" xml:space="preserve">
+    <value>Set as Destination</value>
+  </data>
+  <data name="Menu_DirectoryOnly" xml:space="preserve">
+    <value>Directory Only</value>
+  </data>
+  <data name="Menu_DirectoryAndFile" xml:space="preserve">
+    <value>Directory and File</value>
+  </data>
+  <data name="Menu_WorkingMode" xml:space="preserve">
+    <value>Working Mode</value>
+  </data>
+  <data name="Menu_ShowInExplorer" xml:space="preserve">
+    <value>Show in Explorer</value>
+  </data>
+  <data name="Menu_RecommendedMoves" xml:space="preserve">
+    <value>Recommended moves</value>
+  </data>
+  <data name="Rec_Title" xml:space="preserve">
+    <value>Recommended moves</value>
+  </data>
+  <data name="Rec_MoveTo" xml:space="preserve">
+    <value>Move to:</value>
+  </data>
+  <data name="Rec_MinSize" xml:space="preserve">
+    <value>Minimum size (MB):</value>
+  </data>
+  <data name="Rec_Scan" xml:space="preserve">
+    <value>Scan</value>
+  </data>
+  <data name="Rec_ColFolder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Rec_ColSize" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Rec_ColType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Rec_ColDest" xml:space="preserve">
+    <value>Will be moved to</value>
+  </data>
+  <data name="Rec_SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Rec_SelectNone" xml:space="preserve">
+    <value>Select none</value>
+  </data>
+  <data name="Rec_MoveSelected" xml:space="preserve">
+    <value>Move selected</value>
+  </data>
+  <data name="Rec_Hint" xml:space="preserve">
+    <value>Folders are ranked by size. Tick the ones to move; each is moved and linked back so programs keep working.</value>
+  </data>
+  <data name="Rec_Scanning" xml:space="preserve">
+    <value>Scanning {0}</value>
+  </data>
+  <data name="Rec_NoneFound" xml:space="preserve">
+    <value>No movable folders above the minimum size were found.</value>
+  </data>
+  <data name="Rec_KindProgram" xml:space="preserve">
+    <value>Program</value>
+  </data>
+  <data name="Rec_KindAppData" xml:space="preserve">
+    <value>App data</value>
+  </data>
+  <data name="Rec_KindUser" xml:space="preserve">
+    <value>User folder</value>
+  </data>
+  <data name="Rec_KindOther" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="Rec_Status" xml:space="preserve">
+    <value>{0} selected, {1} total. Free on destination: {2}.</value>
+  </data>
+  <data name="Rec_NotEnoughSpace" xml:space="preserve">
+    <value>Not enough free space for this selection.</value>
+  </data>
+  <data name="Rec_DestInvalid" xml:space="preserve">
+    <value>Enter a full destination path, e.g. D:\FreeMove.</value>
+  </data>
+  <data name="Rec_DestSameDrive" xml:space="preserve">
+    <value>The destination must be on a different drive than Windows.</value>
+  </data>
+  <data name="Rec_DestNotReady" xml:space="preserve">
+    <value>Drive {0} is not available.</value>
+  </data>
+  <data name="Rec_DestNotNtfs" xml:space="preserve">
+    <value>Drive {0} is {1}; links need an NTFS drive.</value>
+  </data>
+  <data name="Rec_ConfirmTitle" xml:space="preserve">
+    <value>Confirm move</value>
+  </data>
+  <data name="Rec_ConfirmMessage" xml:space="preserve">
+    <value>Move {0} folder(s), {1} in total, to {2}?
+
+{3}
+
+Close the programs that use these folders before continuing. Each folder is moved and a link is left in its place.</value>
+  </data>
+  <data name="Rec_SummaryTitle" xml:space="preserve">
+    <value>Recommended moves</value>
+  </data>
+  <data name="Rec_SummaryMoved" xml:space="preserve">
+    <value>Moved {0} folder(s), freeing about {1} on {2}.</value>
+  </data>
+  <data name="Rec_SummaryFailed" xml:space="preserve">
+    <value>These were not moved and were left as they were:</value>
+  </data>
+  <data name="Rec_SummaryCancelled" xml:space="preserve">
+    <value>The batch was cancelled; remaining folders were not touched.</value>
+  </data>
+  <data name="Rec_MoveBackFailed" xml:space="preserve">
+    <value>Moving back also failed ({0}); the files are split between {1} and {2}. FreeMove will finish this the next time it starts.</value>
+  </data>
+  <data name="Rec_LinkFailed" xml:space="preserve">
+    <value>Could not create the link ({0}); the folder was moved back.</value>
+  </data>
+  <data name="Rec_LinkFailedStranded" xml:space="preserve">
+    <value>Could not create the link ({0}) and could not move the folder back ({1}). Its files are now in {2}. FreeMove will finish this the next time it starts.</value>
+  </data>
+  <data name="Menu_History" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="Hist_Title" xml:space="preserve">
+    <value>Move history</value>
+  </data>
+  <data name="Hist_BatchRecommended" xml:space="preserve">
+    <value>Recommended moves</value>
+  </data>
+  <data name="Hist_ChangedTip" xml:space="preserve">
+    <value>The link or the moved files are missing or no longer match, so this can't be undone automatically.</value>
+  </data>
+  <data name="Hist_Clear" xml:space="preserve">
+    <value>Clear finished</value>
+  </data>
+  <data name="Hist_ClearConfirm" xml:space="preserve">
+    <value>Remove moves that are already undone or no longer valid from the history? Moves that can still be undone are kept.</value>
+  </data>
+  <data name="Hist_Empty" xml:space="preserve">
+    <value>No moves yet. Moves you make with FreeMove will appear here.</value>
+  </data>
+  <data name="Hist_ErrChanged" xml:space="preserve">
+    <value>The link or the moved files changed since the move, so it can't be undone automatically.</value>
+  </data>
+  <data name="Hist_ErrSpace" xml:space="preserve">
+    <value>Not enough free space on {0}: needs {1}, {2} free.</value>
+  </data>
+  <data name="Hist_Hint" xml:space="preserve">
+    <value>Tick moves to undo. Expand a batch to pick individual folders.</value>
+  </data>
+  <data name="Hist_StateChanged" xml:space="preserve">
+    <value>Changed outside FreeMove</value>
+  </data>
+  <data name="Hist_StateMoved" xml:space="preserve">
+    <value>Moved</value>
+  </data>
+  <data name="Hist_StateUndone" xml:space="preserve">
+    <value>Undone</value>
+  </data>
+  <data name="Hist_Status" xml:space="preserve">
+    <value>{0} selected, {1} to move back.</value>
+  </data>
+  <data name="Hist_SummaryCancelled" xml:space="preserve">
+    <value>Undo was cancelled; remaining items were not touched.</value>
+  </data>
+  <data name="Hist_SummaryFailed" xml:space="preserve">
+    <value>These were not moved back and were left as they were:</value>
+  </data>
+  <data name="Hist_SummaryUndone" xml:space="preserve">
+    <value>Moved {0} item(s), {1} in total, back to their original location.</value>
+  </data>
+  <data name="Hist_SummaryWarnings" xml:space="preserve">
+    <value>Moved back, with these notes:</value>
+  </data>
+  <data name="Hist_UndoConfirm" xml:space="preserve">
+    <value>Move {0} item(s) back to their original location?
+
+{1}
+
+This needs {2} of free space on the original drive. Close the programs that use these folders first.</value>
+  </data>
+  <data name="Hist_UndoSelected" xml:space="preserve">
+    <value>Undo selected</value>
+  </data>
+  <data name="Hist_UndoTitle" xml:space="preserve">
+    <value>Undo moves</value>
+  </data>
+  <data name="Hist_WarnLeftover" xml:space="preserve">
+    <value>Leftover files may remain in {0}.</value>
+  </data>
+  <data name="Hist_WarnLinkLeft" xml:space="preserve">
+    <value>The old link {0} could not be removed ({1}); you can delete it manually.</value>
+  </data>
+  <data name="Rec_SummaryUndoHint" xml:space="preserve">
+    <value>You can undo any of these moves from History.</value>
+  </data>
+  <data name="Queue_ItemFormat" xml:space="preserve">
+    <value>Item {0} of {1}: {2}</value>
+  </data>
+  <data name="Queue_Skip" xml:space="preserve">
+    <value>Skip</value>
+  </data>
+  <data name="Queue_SkipRemaining" xml:space="preserve">
+    <value>Skip remaining</value>
+  </data>
+  <data name="Queue_RemainingWillSkip" xml:space="preserve">
+    <value>(remaining items will be skipped)</value>
+  </data>
+  <data name="Queue_SkipConfirm" xml:space="preserve">
+    <value>Skip this item? It will be put back exactly as it was, and the next item will start.</value>
+  </data>
+  <data name="Rec_SummarySkipped" xml:space="preserve">
+    <value>Skipped (left as they were):</value>
+  </data>
+  <data name="Hist_SummarySkipped" xml:space="preserve">
+    <value>Skipped (still moved, links unchanged):</value>
+  </data>
+  <data name="Hist_BatchUndo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Hist_BatchManual" xml:space="preserve">
+    <value>Move</value>
+  </data>
+  <data name="Hist_ItemsFormat" xml:space="preserve">
+    <value>{0} items, {1}</value>
+  </data>
+  <data name="Hist_StateMovedBack" xml:space="preserve">
+    <value>Moved back</value>
+  </data>
+  <data name="Conflict_CancelBatch" xml:space="preserve">
+    <value>Cancel batch</value>
+  </data>
+  <data name="Conflict_ColDest" xml:space="preserve">
+    <value>Already at destination</value>
+  </data>
+  <data name="Conflict_ColExisting" xml:space="preserve">
+    <value>Existing items</value>
+  </data>
+  <data name="Conflict_ColSource" xml:space="preserve">
+    <value>Moving</value>
+  </data>
+  <data name="Conflict_Continue" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="Conflict_Intro" xml:space="preserve">
+    <value>These already exist at the destination. Unticked items are skipped and nothing is overwritten. Tick an item to overwrite it: files with the same name are replaced by the ones being moved, and other files already there are kept.</value>
+  </data>
+  <data name="Conflict_ManualQuestion" xml:space="preserve">
+    <value>{0} already exists.
+
+Overwrite it? Files with the same name will be replaced by the ones being moved; other files already there are kept.
+
+Yes: overwrite and move
+No: don't move</value>
+  </data>
+  <data name="Conflict_OverwriteAll" xml:space="preserve">
+    <value>Overwrite all</value>
+  </data>
+  <data name="Conflict_SkipAll" xml:space="preserve">
+    <value>Skip all</value>
+  </data>
+  <data name="Conflict_SkippedNote" xml:space="preserve">
+    <value>(already exists at the destination)</value>
+  </data>
+  <data name="Conflict_Title" xml:space="preserve">
+    <value>Already exists at destination</value>
+  </data>
+  <data name="InUse_CannotEnd" xml:space="preserve">
+    <value>(system process or service; close it yourself)</value>
+  </data>
+  <data name="InUse_EndAndRetry" xml:space="preserve">
+    <value>End tasks and retry</value>
+  </data>
+  <data name="InUse_EndConfirm" xml:space="preserve">
+    <value>End these programs?
+
+{0}
+
+Unsaved work in them will be lost.</value>
+  </data>
+  <data name="InUse_EndFailed" xml:space="preserve">
+    <value>Some programs could not be ended</value>
+  </data>
+  <data name="InUse_Intro" xml:space="preserve">
+    <value>These were set aside because programs are using them. End those programs and retry, close them yourself and retry, or skip these folders. Nothing has been changed for them.</value>
+  </data>
+  <data name="InUse_Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="InUse_Skip" xml:space="preserve">
+    <value>Skip these</value>
+  </data>
+  <data name="InUse_SkippedNote" xml:space="preserve">
+    <value>(in use)</value>
+  </data>
+  <data name="InUse_Title" xml:space="preserve">
+    <value>Folders in use</value>
+  </data>
+  <data name="InUse_Unknown" xml:space="preserve">
+    <value>In use, but the program couldn't be identified</value>
+  </data>
+  <data name="LongMsg_Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="LongMsg_Hint" xml:space="preserve">
+    <value>Scroll to read everything. You can resize this window and copy the text.</value>
+  </data>
+  <data name="LongMsg_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="LongMsg_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="LongMsg_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Rec_ColInUse" xml:space="preserve">
+    <value>In use by</value>
+  </data>
+  <data name="Rec_InUseTip" xml:space="preserve">
+    <value>This program is running now. Close it before moving, or FreeMove will offer to end it.</value>
+  </data>
+  <data name="Conflict_RolledBack" xml:space="preserve">
+    <value>Nothing was moved. {0} was put back exactly as it was before.</value>
+  </data>
+  <data name="Hist_ErrMergeRecord" xml:space="preserve">
+    <value>This move was merged into an existing folder, and its record of which files were moved can't be read ({0}), so it can't be undone without disturbing the files that were already there.</value>
+  </data>
+  <data name="Copy_DifferentFileExists" xml:space="preserve">
+    <value>A different file already exists at {0}; it was not overwritten.</value>
+  </data>
+  <data name="Copy_PermissionsWarning" xml:space="preserve">
+    <value>Some permissions weren't copied: </value>
+  </data>
+  <data name="Copy_VerifyFailed" xml:space="preserve">
+    <value>The copy of {0} doesn't match the original.</value>
+  </data>
+  <data name="Error_CannotRead" xml:space="preserve">
+    <value>Can't read everything inside {0}: {1}</value>
+  </data>
+  <data name="Error_DestInsideSource" xml:space="preserve">
+    <value>Can't move {0} into itself.</value>
+  </data>
+  <data name="Error_InvalidName" xml:space="preserve">
+    <value>"{0}" isn't a valid name. Use a plain name without \ / : * ? " &lt; &gt; |.</value>
+  </data>
+  <data name="Error_SourceIsLink" xml:space="preserve">
+    <value>{0} is already a link, so there is nothing to move.</value>
+  </data>
+  <data name="Hist_AddedSinceQuestion" xml:space="preserve">
+    <value>{0} file(s) were saved into {1} after it was moved:
+
+{2}
+
+Bring them back to {3} too?
+
+Yes: bring them back with the rest
+No: leave them in {1}</value>
+  </data>
+  <data name="Hist_BackupNote" xml:space="preserve">
+    <value>(merged; {0} of replaced files backed up)</value>
+  </data>
+  <data name="Hist_DeleteBackups" xml:space="preserve">
+    <value>Delete backups</value>
+  </data>
+  <data name="Hist_DeleteBackupsConfirm" xml:space="preserve">
+    <value>Delete the backups of the files this move replaced in {0} ({1})?
+
+This frees the space, but those original files can no longer be restored. Undoing the move afterwards will leave the files that replaced them in place.</value>
+  </data>
+  <data name="Hist_ErrLinkNotRestored" xml:space="preserve">
+    <value>The link couldn't be put back ({0}); FreeMove will do it the next time it starts.</value>
+  </data>
+  <data name="Journal_BackupKept" xml:space="preserve">
+    <value>Some replaced files could not be put back. Their originals are still in {0}.</value>
+  </data>
+  <data name="Journal_BackupNote" xml:space="preserve">
+    <value>{0} replaced file(s) are kept in {1} so the move can be undone. You can delete these backups from History.</value>
+  </data>
+  <data name="Journal_CannotWrite" xml:space="preserve">
+    <value>Couldn't write the safety record, so nothing was moved: {0}</value>
+  </data>
+  <data name="Rec_PartialCopyLeft" xml:space="preserve">
+    <value>The partial copy at {0} couldn't be removed ({1}); the original is unchanged.</value>
+  </data>
+  <data name="Rec_SummaryTitle_Manual" xml:space="preserve">
+    <value>Move</value>
+  </data>
+  <data name="Rec_SummaryWarnings" xml:space="preserve">
+    <value>Moved, with these notes:</value>
+  </data>
+  <data name="Recovery_Failed" xml:space="preserve">
+    <value>{0}: couldn't be finished yet ({1}). FreeMove will try again next time.</value>
+  </data>
+  <data name="Recovery_Intro" xml:space="preserve">
+    <value>Some operations were interrupted the last time FreeMove ran. They have been finished or rolled back:</value>
+  </data>
+  <data name="Recovery_LinkFailed" xml:space="preserve">
+    <value>The files are safe in {0}, but the link at {1} couldn't be created ({2}).</value>
+  </data>
+  <data name="Recovery_MissingBoth" xml:space="preserve">
+    <value>Neither {0} nor {1} could be found.</value>
+  </data>
+  <data name="Recovery_MoveFinished" xml:space="preserve">
+    <value>Finished moving {0} to {1}.</value>
+  </data>
+  <data name="Recovery_MoveRolledBack" xml:space="preserve">
+    <value>Put {0} back where it was; it was not moved.</value>
+  </data>
+  <data name="Recovery_Title" xml:space="preserve">
+    <value>Interrupted operations</value>
+  </data>
+  <data name="Recovery_UndoFinished" xml:space="preserve">
+    <value>Finished moving {0} back.</value>
+  </data>
+  <data name="Recovery_UndoRolledBack" xml:space="preserve">
+    <value>{0} is still moved; the interrupted undo was rolled back.</value>
+  </data>
+  <data name="Hist_ErrTargetGone" xml:space="preserve">
+    <value>{0} no longer exists, so the files at {1} were left untouched.</value>
+  </data>
+  <data name="Rec_OnlyCopyKept" xml:space="preserve">
+    <value>The files are now only in {0}; they were left there.</value>
+  </data>
+  <data name="Log_SeeLog" xml:space="preserve">
+    <value>Details were saved to the log in {0}.</value>
+  </data>
+  <data name="Browser_Loading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="Busy_ClosingWhenDone" xml:space="preserve">
+    <value>will close when the current item is finished...</value>
+  </data>
+  <data name="Check_Checking" xml:space="preserve">
+    <value>Checking the files before moving...</value>
+  </data>
+  <data name="Busy_AlreadyMoving" xml:space="preserve">
+    <value>FreeMove is already moving files. Wait for it to finish, then try again.</value>
+  </data>
+  <data name="Queue_Add" xml:space="preserve">
+    <value>Add to queue</value>
+  </data>
+  <data name="Preview_Button" xml:space="preserve">
+    <value>Preview...</value>
+  </data>
+  <data name="Menu_Queue" xml:space="preserve">
+    <value>Queue</value>
+  </data>
+  <data name="Menu_QueueCount" xml:space="preserve">
+    <value>Queue ({0})</value>
+  </data>
+  <data name="Menu_OpenLog" xml:space="preserve">
+    <value>Open log folder</value>
+  </data>
+  <data name="Menu_HealthOnStart" xml:space="preserve">
+    <value>Check moved folders at startup</value>
+  </data>
+  <data name="Queue_AddTip" xml:space="preserve">
+    <value>Add this move to the queue, to move several folders one after another.</value>
+  </data>
+  <data name="Preview_Tip" xml:space="preserve">
+    <value>See the size, free space afterwards, programs using it and any warnings, without moving anything.</value>
+  </data>
+  <data name="Queue_NeedPaths" xml:space="preserve">
+    <value>Choose what to move (From) and where to (To) first.</value>
+  </data>
+  <data name="Queue_SourceMissing" xml:space="preserve">
+    <value>{0} doesn't exist.</value>
+  </data>
+  <data name="Queue_SummaryTitle" xml:space="preserve">
+    <value>Move queue</value>
+  </data>
+  <data name="Safety_Checking" xml:space="preserve">
+    <value>Looking for possible problems: {0}</value>
+  </data>
+  <data name="Safety_CheckingTitle" xml:space="preserve">
+    <value>Looking for possible problems...</value>
+  </data>
+  <data name="Safety_Title" xml:space="preserve">
+    <value>Check before moving</value>
+  </data>
+  <data name="Safety_IntroOne" xml:space="preserve">
+    <value>This move may cause problems:</value>
+  </data>
+  <data name="Safety_AskOne" xml:space="preserve">
+    <value>Move it anyway?</value>
+  </data>
+  <data name="Safety_IntroMany" xml:space="preserve">
+    <value>{0} of these {1} items may cause problems:</value>
+  </data>
+  <data name="Safety_AskMany" xml:space="preserve">
+    <value>Yes: move everything anyway
+No: skip these and move the rest
+Cancel: don't move anything</value>
+  </data>
+  <data name="Safety_SkippedNote" xml:space="preserve">
+    <value>(skipped because of a warning)</value>
+  </data>
+  <data name="Preview_Working" xml:space="preserve">
+    <value>Preparing the preview...</value>
+  </data>
+  <data name="Preview_Title" xml:space="preserve">
+    <value>Preview (nothing has been moved)</value>
+  </data>
+  <data name="Preview_Measuring" xml:space="preserve">
+    <value>Measuring {0}</value>
+  </data>
+  <data name="Preview_Missing" xml:space="preserve">
+    <value>Doesn't exist.</value>
+  </data>
+  <data name="Preview_Size" xml:space="preserve">
+    <value>Size: {0}</value>
+  </data>
+  <data name="Preview_AlreadyLink" xml:space="preserve">
+    <value>This is already a link, so there is nothing to move.</value>
+  </data>
+  <data name="Preview_Exists" xml:space="preserve">
+    <value>Already exists at the destination: you'll be asked whether to merge into it.</value>
+  </data>
+  <data name="Preview_Running" xml:space="preserve">
+    <value>Running now: {0}. Close it before moving.</value>
+  </data>
+  <data name="Preview_Space" xml:space="preserve">
+    <value>Free space:</value>
+  </data>
+  <data name="Preview_SpaceLine" xml:space="preserve">
+    <value>{0}  {1} now, about {2} after</value>
+  </data>
+  <data name="Preview_NotEnough" xml:space="preserve">
+    <value>not enough space!</value>
+  </data>
+  <data name="Preview_DriveNotReady" xml:space="preserve">
+    <value>{0}  not available</value>
+  </data>
+  <data name="Health_StartupQuestion" xml:space="preserve">
+    <value>{0} moved folder(s) aren't working the way FreeMove left them (for example, the drive they were moved to isn't connected, or a reinstall replaced a link with a new folder).
+
+Show the details?</value>
+  </data>
+  <data name="Hist_HealthCheck" xml:space="preserve">
+    <value>Health check</value>
+  </data>
+  <data name="Drop_NeedTo" xml:space="preserve">
+    <value>To move several items at once, first choose where to move them (To), then drop them again. They'll be added to the queue.</value>
+  </data>
+  <data name="Queue_Title" xml:space="preserve">
+    <value>Move queue</value>
+  </data>
+  <data name="Queue_ColFrom" xml:space="preserve">
+    <value>Move</value>
+  </data>
+  <data name="Queue_ColTo" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="Queue_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Queue_Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Queue_MoveAll" xml:space="preserve">
+    <value>Move all</value>
+  </data>
+  <data name="Queue_Empty" xml:space="preserve">
+    <value>The queue is empty. Pick a folder in the main window and click "Add to queue", or drop several folders on it.</value>
+  </data>
+  <data name="Queue_Count" xml:space="preserve">
+    <value>{0} item(s) waiting.</value>
+  </data>
+  <data name="Queue_Confirm" xml:space="preserve">
+    <value>Move these {0} item(s)?
+
+{1}
+
+Close the programs that use them first. Each one is moved and a link is left in its place.</value>
+  </data>
+  <data name="Hist_FindMissing" xml:space="preserve">
+    <value>Find missing moves</value>
+  </data>
+  <data name="Hist_UndoAll" xml:space="preserve">
+    <value>Move everything back</value>
+  </data>
+  <data name="Hist_HealthTip" xml:space="preserve">
+    <value>Check that every moved folder still has its link and that the moved files are reachable.</value>
+  </data>
+  <data name="Hist_FindMissingTip" xml:space="preserve">
+    <value>Look for links to other drives that aren't in this list (for example after History was lost) and add them.</value>
+  </data>
+  <data name="Hist_UndoAllTip" xml:space="preserve">
+    <value>Move every moved folder back to where it was. Do this before uninstalling FreeMove or wiping the other drive.</value>
+  </data>
+  <data name="Hist_SavedDrive" xml:space="preserve">
+    <value>{0} freed from {1}</value>
+  </data>
+  <data name="Hist_SavedNone" xml:space="preserve">
+    <value>Nothing is moved right now.</value>
+  </data>
+  <data name="Hist_Saved" xml:space="preserve">
+    <value>{0} item(s) moved: {1}.</value>
+  </data>
+  <data name="Health_AllGood" xml:space="preserve">
+    <value>Every moved item has its link in place and its files are reachable.</value>
+  </data>
+  <data name="Health_RepairQuestion" xml:space="preserve">
+    <value>Recreate the {0} missing link(s) now?</value>
+  </data>
+  <data name="Health_Repaired" xml:space="preserve">
+    <value>The missing links were recreated.</value>
+  </data>
+  <data name="Health_RepairFailed" xml:space="preserve">
+    <value>Some links couldn't be recreated:</value>
+  </data>
+  <data name="Hist_Searching" xml:space="preserve">
+    <value>Searching for links...</value>
+  </data>
+  <data name="Hist_FindNone" xml:space="preserve">
+    <value>No links to other drives were found that aren't already in History.</value>
+  </data>
+  <data name="Hist_FindQuestion" xml:space="preserve">
+    <value>Found {0} link(s) to other drives that aren't in History:
+
+{1}
+
+Add them, so they can be checked and moved back like any other move?</value>
+  </data>
+  <data name="Health_DriveMissing" xml:space="preserve">
+    <value>{0}
+    The drive it was moved to ({1}) isn't connected. Reconnect it; programs using this folder won't work until then.</value>
+  </data>
+  <data name="Health_TargetMissing" xml:space="preserve">
+    <value>{0}
+    The moved files at {1} are gone (deleted or renamed). The link leads nowhere, so programs using it will fail or start fresh.</value>
+  </data>
+  <data name="Health_Replaced" xml:space="preserve">
+    <value>{0}
+    A new, real folder is there instead of the link (often after a reinstall or update), so new data is saved on this drive again. The moved files are still at {1}. Close the program, compare the two, then move the folder again or delete the one you don't need.</value>
+  </data>
+  <data name="Health_LinkMissing" xml:space="preserve">
+    <value>{0}
+    The link was deleted, but the moved files are still at {1}. FreeMove can recreate the link.</value>
+  </data>
+  <data name="Health_PointsElsewhere" xml:space="preserve">
+    <value>{0}
+    The link now points somewhere other than {1}. It was changed outside FreeMove.</value>
+  </data>
+  <data name="Health_Gone" xml:space="preserve">
+    <value>{0}
+    Neither the link nor the moved files at {1} exist anymore. You can remove this entry with "Clear finished".</value>
+  </data>
+  <data name="Health_Found" xml:space="preserve">
+    <value>{0} moved item(s) need attention:</value>
+  </data>
+  <data name="Health_CantRepair" xml:space="preserve">
+    <value>This can't be repaired automatically.</value>
+  </data>
+  <data name="Health_SomethingThere" xml:space="preserve">
+    <value>Something is at the original location now, so the link wasn't recreated.</value>
+  </data>
+  <data name="Rec_RemovableWarning" xml:space="preserve">
+    <value>Warning: this is a removable drive; programs will break whenever it is unplugged.</value>
+  </data>
+  <data name="Safety_CloudSource" xml:space="preserve">
+    <value>{0} is synced by a cloud service ({1}). Moving it out through a link usually breaks syncing or makes the service upload or delete files. Use the service's own settings to change its folder instead.</value>
+  </data>
+  <data name="Safety_CloudDest" xml:space="preserve">
+    <value>The destination is inside a cloud-synced folder ({0}). The moved files would be uploaded, and the service may lock them while syncing. Pick a folder outside it.</value>
+  </data>
+  <data name="App_NoteStore" xml:space="preserve">
+    <value>Microsoft Store apps break when moved through a link. Use Settings &gt; Apps &gt; Installed apps &gt; Move instead.</value>
+  </data>
+  <data name="Safety_Service" xml:space="preserve">
+    <value>A Windows service that starts with the PC runs from {0}. It is always in use, so the move will probably fail, and some services refuse to start from a link.</value>
+  </data>
+  <data name="Safety_Removable" xml:space="preserve">
+    <value>{0} is a removable drive. Whenever it is unplugged, the programs using the moved files stop working and may act as if they were reinstalled. Use an internal drive for anything that has to be there all the time.</value>
+  </data>
+  <data name="Safety_Network" xml:space="preserve">
+    <value>{0} is a network drive. Programs will break whenever the network or the other computer is unavailable, and many programs don't work from network drives at all.</value>
+  </data>
+  <data name="Safety_NotNtfs" xml:space="preserve">
+    <value>{0} is formatted as {1}, not NTFS. File permissions, hard links and hidden data streams can't be kept there, and some programs won't work correctly from it. An NTFS drive is strongly recommended.</value>
+  </data>
+  <data name="Check_Scanning" xml:space="preserve">
+    <value>Checking the files before moving: {0:N0} found...</value>
+  </data>
+  <data name="Check_Access" xml:space="preserve">
+    <value>Checking that no file is in use: {0:N0} of {1:N0}...</value>
+  </data>
+</root>

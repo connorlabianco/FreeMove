@@ -1,0 +1,115 @@
+﻿// FreeMove -- Move directories without breaking shortcuts or installations 
+//    Copyright(C) 2020  Luca De Martini
+
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+//    GNU General Public License for more details.
+
+//    You should have received a copy of the GNU General Public License
+//    along with this program.If not, see<http://www.gnu.org/licenses/>.
+
+using System;
+using System.Globalization;
+using System.Security.Principal;
+using System.Threading;
+using System.Windows.Forms;
+
+namespace FreeMove
+{
+    static class Program
+    {
+        /// <summary>
+        /// Punto di ingresso principale dell'applicazione.
+        /// </summary>
+        [STAThread]
+        static void Main(string[] args)
+        {
+            // 检查是否传递了跳过安全检查的参数
+            bool skipSecurityChecks = args != null && System.Array.Exists(args, element => element.Equals("--unsafe-skip-checks", StringComparison.OrdinalIgnoreCase));
+            
+            string sourcePath = null;
+            string destPath = null;
+            if (args != null)
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i].Equals("--source", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                    {
+                        sourcePath = args[i + 1];
+                        i++;
+                    }
+                    else if (args[i].Equals("--destination", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                    {
+                        destPath = args[i + 1];
+                        i++;
+                    }
+                }
+            }
+
+            // 如非管理员权限，提示并退出
+            try
+            {
+                using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+                {
+                    WindowsPrincipal principal = new WindowsPrincipal(identity);
+                    if (!principal.IsInRole(WindowsBuiltInRole.Administrator))
+                    {
+                        string msg = Properties.Resources.ResourceManager.GetString("AdminRequiredMessage");
+                        string title = Properties.Resources.ResourceManager.GetString("AdminRequiredTitle");
+                        MessageBox.Show(msg, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+            }
+            catch
+            {
+                // 如果检查失败，出于安全考虑也直接退出
+                string msg = Properties.Resources.ResourceManager.GetString("AdminRequiredMessage");
+                string title = Properties.Resources.ResourceManager.GetString("AdminRequiredTitle");
+                MessageBox.Show(msg, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 设置全局语言：优先使用用户在设置中选择的语言，否则跟随系统
+            try
+            {
+                string lang = Settings.Language;
+                CultureInfo culture;
+                if (!string.IsNullOrEmpty(lang))
+                {
+                    culture = new CultureInfo(lang);
+                }
+                else
+                {
+                    culture = CultureInfo.InstalledUICulture;
+                }
+                Thread.CurrentThread.CurrentCulture = culture;
+                Thread.CurrentThread.CurrentUICulture = culture;
+            }
+            catch
+            {
+                // 如果设置中的语言代码无效，忽略并使用系统默认
+            }
+
+            // Anything unexpected goes to the log, so it can be traced after the fact
+            Application.ThreadException += (s, e) =>
+            {
+                Log.Error("Unhandled error", e.Exception);
+                MessageBox.Show(e.Exception.Message + "\n\n" + string.Format(Properties.Resources.ResourceManager.GetString("Log_SeeLog") ?? "Details were saved to the log in {0}.", Log.Folder),
+                    Properties.Resources.ResourceManager.GetString("ErrorTitle") ?? "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            };
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => Log.Error("Fatal error", e.ExceptionObject as Exception);
+            Log.Info("FreeMove " + Application.ProductVersion + " started" + (skipSecurityChecks ? " (unsafe mode)" : ""));
+
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new Form1(skipSecurityChecks, sourcePath, destPath));
+        }
+    }
+}
