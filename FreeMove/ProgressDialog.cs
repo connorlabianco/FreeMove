@@ -56,6 +56,18 @@ namespace FreeMove
             label_Progress.Text = Message;
         }
 
+        /// <summary>
+        /// For a step with no measurable progress (such as checking the files before a move):
+        /// shows the message and a moving bar instead of a count.
+        /// </summary>
+        public void ShowIndeterminate(string message)
+        {
+            Message = message;
+            label_Progress.Text = "";
+            progressBar1.Style = ProgressBarStyle.Marquee;
+            progressBar1.MarqueeAnimationSpeed = 30;
+        }
+
         public event EventHandler CancelRequested
         {
             add => button_Cancel.Click += value;
