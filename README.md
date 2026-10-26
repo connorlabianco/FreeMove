@@ -1,7 +1,5 @@
 # FreeMove
 
-[🇨🇳 简体中文](README.zh-CN.md) · [🇺🇸 English](README.md)
-
 [![Build Beta & Release](https://github.com/connorlabianco/FreeMove/actions/workflows/build-release.yml/badge.svg)](https://github.com/connorlabianco/FreeMove/actions/workflows/build-release.yml)
 
 Move directories or files freely without breaking installations or shortcuts
