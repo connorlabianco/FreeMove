@@ -369,7 +369,7 @@ namespace FreeMove.History
                         long size = 0;
                         try { size = isFile ? new FileInfo(target).Length : Recommendations.RecommendationScanner.GetDirectorySize(target, token); }
                         catch { }
-                        found.Add(new MoveEntry { LinkPath = child.TrimEnd('\'), TargetPath = target.TrimEnd('\'), IsFile = isFile, SizeBytes = size });
+                        found.Add(new MoveEntry { LinkPath = child.TrimEnd('\\'), TargetPath = target.TrimEnd('\\'), IsFile = isFile, SizeBytes = size });
                     }
                     else if (Directory.Exists(child))
                     {
