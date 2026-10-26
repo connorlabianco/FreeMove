@@ -33,8 +33,8 @@ namespace FreeMove
         string NewVersion = "";
         readonly bool Silent;
 
-        const string LatestReleaseApi = "https://api.github.com/repos/fengyec2/FreeMove/releases/latest";
-        const string LatestReleasePage = "https://github.com/fengyec2/FreeMove/releases/latest";
+        const string LatestReleaseApi = "https://api.github.com/repos/connorlabianco/FreeMove/releases/latest";
+        const string LatestReleasePage = "https://github.com/connorlabianco/FreeMove/releases/latest";
 
         // One client for the app's lifetime, with a timeout so a slow network can't hang the check
         static readonly HttpClient Client = CreateClient();
