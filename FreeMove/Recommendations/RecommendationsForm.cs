@@ -17,12 +17,25 @@ using System.Windows.Forms;
 
 namespace FreeMove.Recommendations
 {
+    /// <summary>The folders the person chose to move, and where to.</summary>
+    public class MoveAcceptedEventArgs : EventArgs
+    {
+        public List<MoveRecommendation> Items { get; set; }
+        public string DestinationRoot { get; set; }
+    }
+
     /// <summary>
     /// Lists the largest movable folders on the system drive. The person ticks the ones to move,
-    /// and on OK the caller moves each one to <see cref="DestinationRoot"/> and links it back.
+    /// and on Move the caller (via <see cref="MoveAccepted"/>) moves each one to <see cref="DestinationRoot"/> and links it back.
     /// </summary>
     public class RecommendationsForm : Form
     {
+        /// <summary>Asked before moving: true while the main window is already moving files.</summary>
+        public Func<bool> IsBusy { get; set; }
+
+        /// <summary>Raised (after this window closes) with the folders the person chose to move.</summary>
+        public event EventHandler<MoveAcceptedEventArgs> MoveAccepted;
+
         readonly TextBox textBox_Dest;
         readonly Button button_BrowseDest;
         readonly NumericUpDown numeric_MinSize;
@@ -122,7 +135,8 @@ namespace FreeMove.Recommendations
             button_SelectNone.Click += (s, e) => SetAllChecked(false);
             button_Move = new Button { Text = T("Rec_MoveSelected", "Move selected"), AutoSize = true, Enabled = false };
             button_Move.Click += Move_Click;
-            button_Cancel = new Button { Text = T("Button_Close", "Close"), AutoSize = true, DialogResult = DialogResult.Cancel };
+            button_Cancel = new Button { Text = T("Button_Close", "Close"), AutoSize = true };
+            button_Cancel.Click += (s, e) => Close();   // this is an independent window, not a dialog
 
             bottom.Controls.Add(label_Status, 0, 0);
             bottom.Controls.Add(button_SelectAll, 1, 0);
@@ -315,6 +329,12 @@ namespace FreeMove.Recommendations
         {
             List<MoveRecommendation> selected = SelectedRecommendations;
             if (selected.Count == 0) return;
+            if (IsBusy?.Invoke() == true)
+            {
+                MessageBox.Show(this, T("Busy_AlreadyMoving", "FreeMove is already moving files. Wait for it to finish, then try again."),
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
 
             string list = string.Join("\n", selected.Select(r =>
                 $"{r.SourcePath}  ({RecommendationScanner.FormatSize(r.SizeBytes)})"));
@@ -325,8 +345,9 @@ namespace FreeMove.Recommendations
 
             if (Dialogs.ScrollableMessageBox.Show(this, message, T("Rec_ConfirmTitle", "Confirm move"), MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
             {
-                DialogResult = DialogResult.OK;
+                var args = new MoveAcceptedEventArgs { Items = selected, DestinationRoot = DestinationRoot };
                 Close();
+                MoveAccepted?.Invoke(this, args);
             }
         }
     }
