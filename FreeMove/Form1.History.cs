@@ -30,15 +30,29 @@ namespace FreeMove
             ShowHistory();
         }
 
-        private async void ShowHistory()
+        HistoryForm historyWindow;
+
+        /// <summary>
+        /// Opens History as its own window (with its own taskbar button), so you can switch between
+        /// it and the main window. Only one is open at a time.
+        /// </summary>
+        private void ShowHistory()
         {
-            List<MoveEntry> selected;
-            using (var form = new HistoryForm())
+            if (historyWindow != null && !historyWindow.IsDisposed)
             {
-                if (form.ShowDialog(this) != DialogResult.OK) return;
-                selected = form.SelectedEntries;
+                ActivateWindow(historyWindow);
+                return;
             }
-            if (selected.Count > 0) await UndoEntries(selected);
+
+            var form = new HistoryForm { IsBusy = () => IsBusy };
+            form.UndoAccepted += async (s, entries) =>
+            {
+                if (IsBusy) { ShowBusyMessage(this); return; }
+                if (entries.Count > 0) await UndoEntries(entries);
+            };
+            form.FormClosed += (s, e) => { if (ReferenceEquals(historyWindow, s)) historyWindow = null; };
+            historyWindow = form;
+            ShowSideWindow(form);
         }
 
         /// <summary>
@@ -50,6 +64,20 @@ namespace FreeMove
         /// </summary>
         private async Task UndoEntries(List<MoveEntry> entries, bool keepMovedCopy = false)
         {
+            if (IsBusy) { ShowBusyMessage(this); return; }
+            SetBusy(true);   // held until after the summary, so closing the window waits for all of it
+            try
+            {
+                await UndoEntriesCore(entries, keepMovedCopy);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private async Task UndoEntriesCore(List<MoveEntry> entries, bool keepMovedCopy)
+        {
             var undone = new List<MoveEntry>();
             var failed = new List<string>();
             var warnings = new List<string>();
@@ -57,7 +85,6 @@ namespace FreeMove
             bool cancelled = false;
             Guid batchId = Guid.NewGuid();
 
-            Enabled = false;
             try
             {
                 var inUse = new List<InUseItem>();
@@ -65,9 +92,16 @@ namespace FreeMove
 
                 while (!cancelled && inUse.Count > 0)
                 {
+                    if (closeWhenIdle)
+                    {
+                        skipped.AddRange(inUse.Select(i => i.DisplayPath + "  " + R("InUse_SkippedNote", "(in use)")));
+                        break;
+                    }
+
                     InUseChoice choice;
                     using (var form = new InUseForm(inUse))
                     {
+                        PrepareDialog(form);
                         form.ShowDialog(this);
                         choice = form.Choice;
                     }
@@ -87,9 +121,10 @@ namespace FreeMove
             }
             finally
             {
-                Enabled = true;
                 directoryBrowser1.RefreshBrowser();
             }
+
+            if (closeWhenIdle) return;   // closing: the results are in History
 
             var summary = new StringBuilder();
             summary.AppendFormat(R("Hist_SummaryUndone", "Moved {0} item(s), {1} in total, back to their original location."),
@@ -111,7 +146,8 @@ namespace FreeMove
         private async Task<bool> RunUndoQueue(List<MoveEntry> entries, bool keepMovedCopy, Guid batchId, List<MoveEntry> undone,
             List<string> failed, List<string> warnings, List<string> skipped, List<InUseItem> inUse)
         {
-            var queue = new BatchQueue { Count = entries.Count };
+            var queue = new BatchQueue { Count = entries.Count, SkipRemaining = closeWhenIdle };
+            currentQueue = queue;
             for (int i = 0; i < entries.Count; i++)
             {
                 MoveEntry entry = entries[i];
