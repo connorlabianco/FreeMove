@@ -46,7 +46,7 @@ scoop install freemove
 - [x] In-use detection with End tasks and retry
 - [x] Never overwrites silently: warns first, with Skip or Overwrite
 
-*Currently I have no ideas about future features, please let me know if you have any through PRs or issues.*
+*Feel free to reach out with ideas for new implementations*
 
 ## Usage
 
@@ -208,4 +208,4 @@ A: The Everything search integration requires the Everything program to be runni
 
 ## Contributing
 
-The [original project](https://github.com/imDema/FreeMove) is developed by [imDema](https://github.com/imDema). I am currently maintaining the project and am open to contributions. If you are interested in contributing, leave an issue or comment on an open issue and let me know!
+The [original project](https://github.com/imDema/FreeMove) is developed by [imDema](https://github.com/imDema). This repo is abandoned, and a new project was created by [fengyec2](https://github.com/fengyec2/FreeMove) containing additional features. I used this version as a base for my contributions.
