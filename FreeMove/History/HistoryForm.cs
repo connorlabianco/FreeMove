@@ -55,6 +55,12 @@ namespace FreeMove.History
             }
         }
 
+        /// <summary>Asked before undoing: true while the main window is already moving files.</summary>
+        public Func<bool> IsBusy { get; set; }
+
+        /// <summary>Raised (after this window closes) with the entries the person chose to undo.</summary>
+        public event EventHandler<List<MoveEntry>> UndoAccepted;
+
         public HistoryForm()
         {
             Text = T("Hist_Title", "Move history");
@@ -91,7 +97,8 @@ namespace FreeMove.History
             button_Clear.Click += Clear_Click;
             button_Undo = new Button { Text = T("Hist_UndoSelected", "Undo selected"), AutoSize = true, Enabled = false };
             button_Undo.Click += Undo_Click;
-            button_Close = new Button { Text = T("Button_Close", "Close"), AutoSize = true, DialogResult = DialogResult.Cancel };
+            button_Close = new Button { Text = T("Button_Close", "Close"), AutoSize = true };
+            button_Close.Click += (s, e) => Close();   // this is an independent window, not a dialog
             button_DeleteBackups = new Button { Text = T("Hist_DeleteBackups", "Delete backups"), AutoSize = true, Enabled = false };
             button_DeleteBackups.Click += DeleteBackups_Click;
 
@@ -310,6 +317,12 @@ namespace FreeMove.History
         {
             List<MoveEntry> selected = SelectedEntries;
             if (selected.Count == 0) return;
+            if (IsBusy?.Invoke() == true)
+            {
+                MessageBox.Show(this, T("Busy_AlreadyMoving", "FreeMove is already moving files. Wait for it to finish, then try again."),
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
 
             string list = string.Join("\n", selected.Select(s => $"{s.TargetPath}  →  {s.LinkPath}"));
 
@@ -319,8 +332,8 @@ namespace FreeMove.History
 
             if (Dialogs.ScrollableMessageBox.Show(this, message, T("Hist_UndoTitle", "Undo moves"), MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
             {
-                DialogResult = DialogResult.OK;
                 Close();
+                UndoAccepted?.Invoke(this, selected);
             }
         }
     }
