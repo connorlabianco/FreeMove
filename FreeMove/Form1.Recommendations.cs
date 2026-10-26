@@ -52,20 +52,29 @@ namespace FreeMove
         static string R(string key, string fallback) =>
             Properties.Resources.ResourceManager.GetString(key) ?? fallback;
 
-        private async void RecommendedMovesToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            List<MoveRecommendation> accepted;
-            string destinationRoot;
+        RecommendationsForm recommendationsWindow;
 
-            using (var form = new RecommendationsForm())
+        /// <summary>
+        /// Opens Recommended moves as its own window (with its own taskbar button), so you can switch
+        /// between it and the main window. Only one is open at a time.
+        /// </summary>
+        private void RecommendedMovesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (recommendationsWindow != null && !recommendationsWindow.IsDisposed)
             {
-                if (form.ShowDialog(this) != DialogResult.OK) return;
-                accepted = form.SelectedRecommendations;
-                destinationRoot = form.DestinationRoot;
+                ActivateWindow(recommendationsWindow);
+                return;
             }
 
-            if (accepted.Count == 0) return;
-            await MoveRecommendations(accepted, destinationRoot);
+            var form = new RecommendationsForm { IsBusy = () => IsBusy };
+            form.MoveAccepted += async (s, args) =>
+            {
+                if (IsBusy) { ShowBusyMessage(this); return; }
+                if (args.Items.Count > 0) await MoveRecommendations(args.Items, args.DestinationRoot);
+            };
+            form.FormClosed += (s, args) => { if (ReferenceEquals(recommendationsWindow, s)) recommendationsWindow = null; };
+            recommendationsWindow = form;
+            ShowSideWindow(form);
         }
 
         /// <summary>
@@ -74,6 +83,19 @@ namespace FreeMove
         /// the person chooses to overwrite it.
         /// </summary>
         private async Task MoveRecommendations(List<MoveRecommendation> items, string destinationRoot)
+        {
+            SetBusy(true);
+            try
+            {
+                await MoveRecommendationsCore(items, destinationRoot);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private async Task MoveRecommendationsCore(List<MoveRecommendation> items, string destinationRoot)
         {
             var jobs = items.Select(i => new MoveJob
             {
@@ -93,6 +115,7 @@ namespace FreeMove
                     DestinationPath = c.Destination
                 }).ToList()))
                 {
+                    PrepareDialog(form);
                     if (form.ShowDialog(this) != DialogResult.OK) return;
                     chosen = form.OverwriteIndices;
                 }
@@ -106,6 +129,7 @@ namespace FreeMove
             }
 
             MoveBatchResult result = await RunMoveJobs(jobs, recommendedBatch: true);
+            if (closeWhenIdle) return;   // closing: the results are in History
             result.Skipped.InsertRange(0, skippedConflicts);
             ShowBatchSummary(result, R("Rec_SummaryTitle", "Recommended moves"));
         }
@@ -120,7 +144,7 @@ namespace FreeMove
             var result = new MoveBatchResult();
             Guid batchId = Guid.NewGuid();
 
-            Enabled = false;
+            SetBusy(true);
             try
             {
                 var inUse = new List<InUseItem>();
@@ -128,9 +152,16 @@ namespace FreeMove
 
                 while (!result.Cancelled && inUse.Count > 0)
                 {
+                    if (closeWhenIdle)
+                    {
+                        result.Skipped.AddRange(inUse.Select(i => i.DisplayPath + "  " + R("InUse_SkippedNote", "(in use)")));
+                        break;
+                    }
+
                     InUseChoice choice;
                     using (var form = new InUseForm(inUse))
                     {
+                        PrepareDialog(form);
                         form.ShowDialog(this);
                         choice = form.Choice;
                     }
@@ -150,8 +181,8 @@ namespace FreeMove
             }
             finally
             {
-                Enabled = true;
                 directoryBrowser1.RefreshBrowser();
+                SetBusy(false);
             }
             return result;
         }
@@ -211,7 +242,8 @@ namespace FreeMove
         private async Task<bool> RunMoveQueue(List<MoveJob> jobs, Guid batchId, bool recommendedBatch,
             MoveBatchResult result, List<InUseItem> inUse)
         {
-            var queue = new BatchQueue { Count = jobs.Count };
+            var queue = new BatchQueue { Count = jobs.Count, SkipRemaining = closeWhenIdle };
+            currentQueue = queue;
             for (int i = 0; i < jobs.Count; i++)
             {
                 MoveJob job = jobs[i];
@@ -297,10 +329,18 @@ namespace FreeMove
                 createdParents = IOHelper.CreateDirectoryTracked(Path.GetDirectoryName(destination));
                 if (!job.ChecksDone)
                 {
-                    // Same checks as a manual move (protected folders, safe mode, permissions, free space)
-                    IOHelper.CheckDirectories(source, destination, safeMode, createDestination: true,
-                        skipAllChecks: skipSecurityChecks, allowExistingDestination: job.Overwrite);
+                    // Same checks as a manual move (protected folders, safe mode, permissions, free space).
+                    // They read every file, so they run in the background to keep the window responsive.
+                    bool safe = safeMode, skipChecks = skipSecurityChecks, overwrite = job.Overwrite;
+                    await RunCheck(() => IOHelper.CheckDirectories(source, destination, safe, createDestination: true,
+                        skipAllChecks: skipChecks, allowExistingDestination: overwrite), queue);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Skipped or cancelled from the progress window while checking: nothing was moved
+                IOHelper.RemoveEmptyDirectories(createdParents);
+                return new MoveOutcome { Cancelled = true };
             }
             catch (AggregateException ae) when (!ae.InnerExceptions.All(x => x is IOHelper.ReadOnlyPrecheckException))
             {
@@ -353,7 +393,8 @@ namespace FreeMove
                 // Copy failed, was cancelled or skipped, or a same-drive move failed: the original is
                 // still complete, so only the destination needs undoing
                 bool cancelled = ex is OperationCanceledException;
-                string rollbackProblem = RollBackCopy(journal, source, destination);
+                // Deleting a partial copy can take a while: do it in the background
+                string rollbackProblem = await Task.Run(() => RollBackCopy(journal, source, destination));
                 if (rollbackProblem == null) CleanUpAfterRollback(journal, op, createdParents);
                 else journal.Close();   // kept: the next start retries the rollback
 
